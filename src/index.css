@@ -1,0 +1,442 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root,[data-theme="dark"]{
+  --fd:'Space Grotesk',sans-serif;
+  --fb:'Inter',sans-serif;
+
+  --r0:4px; --r1:8px; --r2:12px; --r3:18px; --r4:24px; --r5:32px; --r99:9999px;
+
+  --ease:cubic-bezier(.4,0,.2,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+
+  /* Page */
+  --page:#080c18;
+  /* Cards */
+  --card:rgba(255,255,255,.058);
+  --card2:rgba(255,255,255,.092);
+  --card-h:rgba(255,255,255,.115);
+  /* Inputs — SOLID, not transparent */
+  --input-bg:#111827;
+  --input-border:rgba(255,255,255,.18);
+  --input-border-focus:#5b9cf6;
+  /* Borders */
+  --b1:rgba(255,255,255,.09);
+  --b2:rgba(255,255,255,.17);
+  /* Text */
+  --t1:#eef2ff;
+  --t2:rgba(238,242,255,.68);
+  --t3:rgba(238,242,255,.40);
+  /* Accent */
+  --acc:#5b9cf6;
+  --acc-d:rgba(91,156,246,.18);
+  --acc-g:rgba(91,156,246,.32);
+  /* Glass overlay */
+  --glass:rgba(8,12,24,.65);
+  --glass-b:rgba(255,255,255,.10);
+  /* Scrollbar */
+  --sb-t:rgba(255,255,255,.04);
+  --sb-h:rgba(255,255,255,.16);
+  /* Status */
+  --green:#4ade80;  --green-d:rgba(74,222,128,.16);
+  --yellow:#fbbf24; --yellow-d:rgba(251,191,36,.16);
+  --orange:#fb923c; --orange-d:rgba(251,146,60,.16);
+  --red:#f87171;    --red-d:rgba(248,113,113,.16);
+  --purple:#c084fc; --purple-d:rgba(192,132,252,.16);
+  --blue:#60a5fa;   --blue-d:rgba(96,165,250,.16);
+  --teal:#2dd4bf;   --teal-d:rgba(45,212,191,.16);
+  --pink:#f472b6;   --pink-d:rgba(244,114,182,.16);
+  --indigo:#818cf8; --indigo-d:rgba(129,140,248,.16);
+}
+
+[data-theme="light"]{
+  --page:#edf1f9;
+  --card:rgba(255,255,255,.80);
+  --card2:rgba(255,255,255,.94);
+  --card-h:rgba(255,255,255,.99);
+  --input-bg:#fff;
+  --input-border:rgba(0,0,0,.15);
+  --input-border-focus:#2563eb;
+  --b1:rgba(0,0,0,.07);
+  --b2:rgba(0,0,0,.13);
+  --t1:#0d1424;
+  --t2:rgba(13,20,36,.65);
+  --t3:rgba(13,20,36,.40);
+  --acc:#2563eb;
+  --acc-d:rgba(37,99,235,.12);
+  --acc-g:rgba(37,99,235,.24);
+  --glass:rgba(237,241,249,.70);
+  --glass-b:rgba(255,255,255,.88);
+  --sb-t:rgba(0,0,0,.04);
+  --sb-h:rgba(0,0,0,.16);
+}
+
+/* ═══════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════ */
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--fb);color:var(--t1);background:var(--page);
+  min-height:100vh;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  transition:background .5s var(--ease),color .5s var(--ease);
+}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--sb-t)}
+::-webkit-scrollbar-thumb{background:var(--sb-h);border-radius:99px}
+
+/* ═══════════════════════════════════════════
+   GLASS CARDS
+═══════════════════════════════════════════ */
+.card{
+  background:var(--card);
+  border:1px solid var(--b1);
+  border-radius:var(--r4);
+  backdrop-filter:blur(24px) saturate(1.5);
+  -webkit-backdrop-filter:blur(24px) saturate(1.5);
+  transition:background .25s var(--ease),border-color .25s var(--ease);
+}
+.card-lift{
+  transition:background .25s var(--ease),border-color .25s var(--ease),
+             transform .22s var(--spring),box-shadow .22s var(--ease);
+}
+.card-lift:hover{transform:translateY(-3px);box-shadow:0 20px 48px rgba(0,0,0,.24);border-color:var(--b2);background:var(--card2)}
+
+/* ═══════════════════════════════════════════
+   SEARCH BOX — solid, elevated, always visible
+═══════════════════════════════════════════ */
+.search-box{
+  display:flex;align-items:center;gap:10px;
+  background:var(--input-bg);
+  border:1.5px solid var(--input-border);
+  border-radius:var(--r99);
+  padding:10px 16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 0 0 rgba(91,156,246,0);
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-box:focus-within{
+  border-color:var(--input-border-focus);
+  box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 0 3px rgba(91,156,246,.18);
+}
+.search-box input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--t1);font-size:14px;font-family:var(--fb);
+  min-width:0;
+}
+.search-box input::placeholder{color:var(--t3)}
+
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════ */
+.label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:block}
+.label-sm{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3)}
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════ */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}65%{box-shadow:0 0 0 9px rgba(74,222,128,0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+/* Weather */
+@keyframes rainFall{0%{transform:translateY(-80px) scaleX(1);opacity:.7}100%{transform:translateY(105vh) scaleX(1);opacity:0}}
+@keyframes snowFall{0%{transform:translateY(-20px) rotate(0deg) translateX(0)}50%{transform:translateY(50vh) rotate(180deg) translateX(15px)}100%{transform:translateY(105vh) rotate(360deg) translateX(-10px)}}
+@keyframes dustDrift{0%{transform:translateX(-5%);opacity:0}10%{opacity:1}90%{opacity:.8}100%{transform:translateX(108%);opacity:0}}
+@keyframes cloudDrift{0%{transform:translateX(0) scaleX(1)}100%{transform:translateX(160px) scaleX(1.04)}}
+@keyframes starBlink{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes sunFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.04)}}
+@keyframes sunRay{0%,100%{opacity:.25;transform:rotate(0deg)}50%{opacity:.55;transform:rotate(180deg)}}
+@keyframes heatWave{0%,100%{transform:scaleY(1);opacity:.18}50%{transform:scaleY(1.08);opacity:.35}}
+@keyframes moonGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,240,180,.3))}50%{filter:drop-shadow(0 0 24px rgba(255,240,180,.65))}}
+@keyframes lightning{0%,86%,90%,94%,100%{opacity:0}88%,92%,96%{opacity:.88}}
+@keyframes mistFloat{0%{transform:translateX(0)}100%{transform:translateX(100px)}}
+@keyframes horizonGlow{0%,100%{opacity:.5}50%{opacity:.95}}
+@keyframes bgFade{from{opacity:0}to{opacity:1}}
+
+.fade-up{animation:fadeUp .5s var(--ease) both}
+.fade-in{animation:fadeIn .4s var(--ease) both}
+.scale-in{animation:scaleIn .4s var(--spring) both}
+.d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}
+.d4{animation-delay:.16s}.d5{animation-delay:.20s}.d6{animation-delay:.24s}
+.d7{animation-delay:.28s}.d8{animation-delay:.32s}
+
+/* ═══════════════════════════════════════════
+   LIVE DOT & SPINNER
+═══════════════════════════════════════════ */
+.live-dot{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;animation:glowPulse 2s ease infinite;flex-shrink:0}
+.spinner{width:36px;height:36px;border:2.5px solid var(--b1);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite}
+
+/* ═══════════════════════════════════════════
+   WEATHER SCENE — full-screen animated bg
+═══════════════════════════════════════════ */
+.wx-scene{
+  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  animation:bgFade 1.6s ease both;
+}
+.particle-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+
+/* ── Gradients per condition ── */
+/* dark */
+.wx-sunny      {background:radial-gradient(ellipse 80% 55% at 20% 12%,rgba(255,196,0,.16) 0%,transparent 60%),linear-gradient(155deg,#090f22 0%,#0e1d3c 55%,#090f22 100%)}
+.wx-hot        {background:radial-gradient(ellipse 80% 55% at 25% 12%,rgba(255,100,0,.22) 0%,transparent 58%),linear-gradient(155deg,#130a06 0%,#200f04 55%,#130a06 100%)}
+.wx-cold       {background:radial-gradient(ellipse at 50% 0%,rgba(150,210,255,.12) 0%,transparent 65%),linear-gradient(165deg,#070d18 0%,#0c1620 55%,#070d18 100%)}
+.wx-cloudy     {background:radial-gradient(ellipse at 50% 0%,rgba(110,130,155,.13) 0%,transparent 68%),linear-gradient(158deg,#0b1019 0%,#121921 55%,#0b1019 100%)}
+.wx-partly     {background:radial-gradient(ellipse 70% 50% at 25% 10%,rgba(255,180,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 70% 0%,rgba(110,130,155,.10) 0%,transparent 50%),linear-gradient(158deg,#0a1020 0%,#111824 55%,#0a1020 100%)}
+.wx-rain       {background:radial-gradient(ellipse at 30% 0%,rgba(38,100,200,.16) 0%,transparent 60%),linear-gradient(174deg,#040c17 0%,#071322 55%,#040c17 100%)}
+.wx-drizzle    {background:radial-gradient(ellipse at 40% 0%,rgba(38,100,200,.10) 0%,transparent 60%),linear-gradient(174deg,#080e18 0%,#0b1520 55%,#080e18 100%)}
+.wx-thunder    {background:radial-gradient(ellipse at 50% 0%,rgba(80,28,175,.20) 0%,transparent 70%),linear-gradient(178deg,#040408 0%,#09091c 55%,#040408 100%)}
+.wx-snow       {background:radial-gradient(ellipse at 50% 0%,rgba(168,210,255,.13) 0%,transparent 68%),linear-gradient(165deg,#09101a 0%,#0f1822 55%,#09101a 100%)}
+.wx-fog        {background:radial-gradient(ellipse at 50% 30%,rgba(140,155,170,.14) 0%,transparent 65%),linear-gradient(165deg,#090f18 0%,#0e1620 55%,#090f18 100%)}
+.wx-dust       {background:radial-gradient(ellipse at 50% 30%,rgba(175,120,20,.18) 0%,transparent 68%),linear-gradient(158deg,#130e04 0%,#1e1408 55%,#130e04 100%)}
+.wx-morning    {background:radial-gradient(ellipse 80% 50% at 18% 20%,rgba(255,150,48,.14) 0%,transparent 58%),radial-gradient(ellipse at 82% 80%,rgba(96,40,195,.08) 0%,transparent 55%),linear-gradient(144deg,#080918 0%,#0c1228 55%,#080918 100%)}
+.wx-evening    {background:radial-gradient(ellipse 80% 50% at 82% 20%,rgba(230,78,18,.18) 0%,transparent 58%),radial-gradient(ellipse at 18% 80%,rgba(80,20,138,.12) 0%,transparent 55%),linear-gradient(144deg,#100808 0%,#1c0e10 55%,#100808 100%)}
+.wx-night      {background:radial-gradient(ellipse at 70% 20%,rgba(75,60,200,.12) 0%,transparent 60%),radial-gradient(ellipse at 18% 80%,rgba(58,38,160,.08) 0%,transparent 60%),linear-gradient(135deg,#020408 0%,#05080f 80%,#020408 100%)}
+/* light overrides */
+[data-theme="light"] .wx-sunny  {background:radial-gradient(ellipse 80% 55% at 20% 8%,rgba(255,220,50,.32) 0%,transparent 60%),linear-gradient(155deg,#d5e9ff 0%,#eef5ff 55%,#d5e8ff 100%)}
+[data-theme="light"] .wx-hot    {background:radial-gradient(ellipse 80% 55% at 25% 8%,rgba(255,140,0,.36) 0%,transparent 58%),linear-gradient(155deg,#ffe4cc 0%,#fff0e2 55%,#ffd8b8 100%)}
+[data-theme="light"] .wx-cold   {background:radial-gradient(ellipse at 50% 0%,rgba(185,225,255,.40) 0%,transparent 65%),linear-gradient(165deg,#d5e8f8 0%,#e8f4ff 55%,#d0e4f8 100%)}
+[data-theme="light"] .wx-cloudy {background:radial-gradient(ellipse at 50% 0%,rgba(148,168,188,.38) 0%,transparent 68%),linear-gradient(158deg,#c8d4e2 0%,#dce8f0 55%,#c8d4e2 100%)}
+[data-theme="light"] .wx-partly {background:radial-gradient(ellipse 70% 50% at 25% 8%,rgba(255,200,60,.28) 0%,transparent 55%),radial-gradient(ellipse at 70% 0%,rgba(148,168,188,.22) 0%,transparent 50%),linear-gradient(158deg,#d0ddf0 0%,#e4eefa 55%,#d0ddf0 100%)}
+[data-theme="light"] .wx-rain   {background:radial-gradient(ellipse at 30% 0%,rgba(58,118,215,.22) 0%,transparent 60%),linear-gradient(174deg,#b8ccdf 0%,#ccdcea 55%,#b8ccdf 100%)}
+[data-theme="light"] .wx-drizzle{background:radial-gradient(ellipse at 40% 0%,rgba(58,118,215,.14) 0%,transparent 60%),linear-gradient(174deg,#c8d8e8 0%,#d8e8f4 55%,#c8d8e8 100%)}
+[data-theme="light"] .wx-thunder{background:radial-gradient(ellipse at 50% 0%,rgba(110,58,200,.18) 0%,transparent 70%),linear-gradient(178deg,#c0b8d8 0%,#d0c8e4 55%,#c0b8d8 100%)}
+[data-theme="light"] .wx-snow   {background:radial-gradient(ellipse at 50% 0%,rgba(198,225,255,.42) 0%,transparent 68%),linear-gradient(165deg,#ddeeff 0%,#eef6ff 55%,#ddeeff 100%)}
+[data-theme="light"] .wx-fog    {background:radial-gradient(ellipse at 50% 30%,rgba(175,190,205,.40) 0%,transparent 65%),linear-gradient(165deg,#ccd8e4 0%,#dde8f2 55%,#ccd8e4 100%)}
+[data-theme="light"] .wx-dust   {background:radial-gradient(ellipse at 50% 30%,rgba(215,158,38,.30) 0%,transparent 68%),linear-gradient(158deg,#e8d4a8 0%,#f4e4c0 55%,#e8d4a8 100%)}
+[data-theme="light"] .wx-morning{background:radial-gradient(ellipse 80% 50% at 18% 14%,rgba(255,168,58,.30) 0%,transparent 58%),linear-gradient(144deg,#fce4c8 0%,#fff0e0 55%,#fce4c8 100%)}
+[data-theme="light"] .wx-evening{background:radial-gradient(ellipse 80% 50% at 82% 14%,rgba(255,118,38,.30) 0%,transparent 58%),linear-gradient(144deg,#ffd4b0 0%,#ffe8cc 55%,#ffd0a8 100%)}
+[data-theme="light"] .wx-night  {background:radial-gradient(ellipse at 50% 0%,rgba(180,188,220,.38) 0%,transparent 68%),linear-gradient(135deg,#d4d8e8 0%,#e0e8f0 55%,#d4d8e8 100%)}
+
+/* ── Particle elements ── */
+.rain-drop{position:absolute;top:-80px;border-radius:99px;background:linear-gradient(to bottom,transparent,rgba(140,195,255,.55));animation:rainFall linear infinite}
+.snow-flake{position:absolute;top:-20px;border-radius:50%;background:rgba(220,240,255,.84);animation:snowFall linear infinite}
+.dust-streak{position:absolute;height:1.5px;border-radius:99px;background:rgba(200,148,58,.40);animation:dustDrift linear infinite}
+.cloud-puff{position:absolute;border-radius:50%;animation:cloudDrift linear infinite;filter:blur(3px)}
+.star-dot{position:absolute;border-radius:50%;background:#fff;animation:starBlink ease-in-out infinite}
+.moon-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,246,200,.60) 0%,rgba(220,200,130,.20) 60%,transparent 80%);animation:moonGlow 4s ease-in-out infinite}
+.sun-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,222,80,.70) 0%,rgba(255,180,0,.28) 50%,transparent 70%);animation:sunFloat 6.5s ease-in-out infinite}
+.sun-ray-el{position:absolute;transform-origin:0 0;animation:sunRay 10s linear infinite}
+.heat-el{position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(to top,rgba(255,120,0,.08),transparent);filter:blur(6px);animation:heatWave 3.5s ease-in-out infinite}
+.mist-band{position:absolute;left:-20%;right:-20%;border-radius:50%;filter:blur(22px);animation:mistFloat linear infinite alternate}
+.lightning-el{position:absolute;inset:0;background:rgba(195,178,255,.14);animation:lightning 7s ease-in-out infinite;pointer-events:none}
+.horizon-el{position:absolute;bottom:0;left:0;right:0;pointer-events:none;animation:horizonGlow 4.5s ease-in-out infinite}
+
+/* ═══════════════════════════════════════════
+   PILLS / TABS
+═══════════════════════════════════════════ */
+.pill-tabs{display:flex;gap:3px;background:rgba(255,255,255,.07);padding:3px;border-radius:var(--r99);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.pill-tabs::-webkit-scrollbar{display:none}
+.pill-tab{padding:5px 13px;border-radius:var(--r99);border:none;cursor:pointer;font-family:var(--fb);font-size:11px;font-weight:600;color:var(--t3);background:transparent;transition:all .2s var(--ease);white-space:nowrap;flex-shrink:0}
+.pill-tab.on{background:var(--card2);color:var(--t1);box-shadow:0 2px 8px rgba(0,0,0,.22)}
+
+/* ═══════════════════════════════════════════
+   SCROLL ROW
+═══════════════════════════════════════════ */
+.scroll-x{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;scrollbar-color:var(--sb-h) transparent}
+.scroll-x::-webkit-scrollbar{height:3px}
+.scroll-x::-webkit-scrollbar-thumb{background:var(--sb-h);border-radius:99px}
+
+/* ═══════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════ */
+.prog-track{height:4px;background:var(--b1);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .9s var(--ease)}
+
+/* ═══════════════════════════════════════════
+   STAT BADGE
+═══════════════════════════════════════════ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r99);font-size:10px;font-weight:700;letter-spacing:.05em}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE LAYOUT
+═══════════════════════════════════════════ */
+.dash-grid{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start}
+.main-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.side-col{display:flex;flex-direction:column;gap:14px}
+
+/* Tablet */
+@media(max-width:1000px){
+  .dash-grid{grid-template-columns:1fr}
+  .side-col{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+}
+/* Mobile */
+@media(max-width:640px){
+  .dash-grid{gap:12px}
+  .side-col{grid-template-columns:1fr;gap:12px}
+  .card{border-radius:var(--r3)}
+  .pill-tabs{gap:2px}
+  .pill-tab{padding:5px 10px;font-size:10.5px}
+}
+@media(max-width:480px){
+  .card{border-radius:var(--r2)}
+}
+
+/* ═══════════════════════════════════════════
+   SKELETON
+═══════════════════════════════════════════ */
+.skeleton{background:linear-gradient(90deg,var(--b1) 25%,var(--card-h) 50%,var(--b1) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:var(--r1)}
+
+/* ═══════════════════════════════════════════
+   MOBILE HEADER
+═══════════════════════════════════════════ */
+.hdr-wrap{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+.hdr-search{flex:1 1 200px;min-width:0}
+@media(max-width:600px){
+  .hdr-wrap{padding:8px 12px;gap:8px}
+  .hdr-search{order:3;flex:1 1 100%}
+  .hdr-logo{flex:1}
+}
+
+/* ═══════════════════════════════════════════
+   RECHARTS
+═══════════════════════════════════════════ */
+.recharts-cartesian-axis-tick-value{fill:var(--t3)!important;font-size:10px!important;font-family:var(--fb)!important}
+.recharts-tooltip-wrapper{z-index:10!important}
+
+/* ═══════════════════════════════════════════
+   EXTRA RESPONSIVE POLISH
+═══════════════════════════════════════════ */
+
+/* Hero card temp number on very small screens */
+@media(max-width:380px){
+  .card{border-radius:var(--r2);padding:14px!important}
+}
+
+/* Metrics grid: 2 columns on narrow mobile */
+@media(max-width:480px){
+  /* Force 2-col on tiny screens for metric tiles */
+}
+
+/* Forecast scroll strip */
+@media(max-width:480px){
+  .scroll-x > div{min-width:44px!important}
+}
+
+/* ═══════════════════════════════════════════
+   COMPREHENSIVE RESPONSIVE RULES
+═══════════════════════════════════════════ */
+
+/* ── Shared card padding ── */
+.card-pad { padding: clamp(14px,3.5vw,24px); }
+
+/* ── Metrics grid: 3 cols tablet, 2 cols mobile ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 9px;
+}
+@media(max-width:640px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+@media(max-width:360px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Lifestyle grid ── */
+.lifestyle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+@media(max-width:640px) {
+  .lifestyle-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+}
+@media(max-width:360px) {
+  .lifestyle-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── AI recs grid ── */
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+@media(max-width:480px) {
+  .ai-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Day row temp range ── */
+.day-range { display:flex; align-items:center; gap:6px; min-width:110px; flex-shrink:0; }
+@media(max-width:480px) {
+  .day-range { min-width:80px; gap:4px; }
+  .day-range span { font-size:10px !important; min-width:20px !important; }
+}
+
+/* ── Hide description on very small ── */
+.day-desc { flex:1; font-size:11px; color:var(--t3); text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media(max-width:400px) { .day-desc { display:none; } }
+
+/* ── Forecast header ── */
+.forecast-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+@media(max-width:400px) {
+  .forecast-header { flex-direction:column; align-items:flex-start; }
+}
+
+/* ── Current weather card: stack on mobile ── */
+.wx-card-inner { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap; }
+.wx-card-right { display:flex; flex-direction:column; align-items:flex-end; gap:14px; flex-shrink:0; }
+@media(max-width:540px) {
+  .wx-card-inner { flex-direction:column; }
+  .wx-card-right { align-items:flex-start; width:100%; }
+  .wx-stat-grid  { grid-template-columns: repeat(2, 1fr) !important; width:100%; }
+  .wx-sun-row    { justify-content:flex-start !important; }
+}
+
+/* ── Stat grid ── */
+.wx-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* ── Sun row ── */
+.wx-sun-row { display:flex; gap:22px; }
+
+/* ── Header action buttons: show on mobile too ── */
+.wx-action-btns { display:flex; gap:7px; }
+
+/* ── Search dropdown: never overflow viewport ── */
+.search-drop {
+  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:300;
+  background:var(--input-bg); border:1.5px solid var(--b2);
+  border-radius:var(--r3); overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.36),0 8px 24px rgba(0,0,0,.24);
+  max-height:60vh; overflow-y:auto;
+}
+
+/* ── News section ── */
+.news-featured { border-radius:var(--r3); overflow:hidden; }
+.news-img { height:160px; }
+@media(max-width:480px) {
+  .news-img { height:120px; }
+}
+
+/* ── Map height ── */
+.map-frame { height:clamp(220px,36vw,400px); }
+@media(max-width:480px) {
+  .map-frame { height:220px; }
+}
+
+/* ── Pill tabs on mobile ── */
+@media(max-width:400px) {
+  .pill-tab { padding:5px 8px; font-size:10px; }
+}
+
+/* ── DayRow: compact mode ── */
+.day-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r2); transition:background .18s; }
+@media(max-width:360px) {
+  .day-row { gap:6px; padding:7px 6px; }
+}
+
+/* ── Index bars: tag + val wrap on tiny ── */
+.index-bar-header { display:flex; justify-content:space-between; margin-bottom:5px; }
+@media(max-width:360px) {
+  .index-bar-header { flex-direction:column; gap:3px; }
+}
+
+/* ── Prevent body horizontal scroll ── */
+body { overflow-x:hidden; }
+* { box-sizing:border-box; }
+img { max-width:100%; }
