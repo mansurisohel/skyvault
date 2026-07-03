@@ -20,17 +20,43 @@ function timeAgo(iso) {
 }
 
 async function fetchGNews(city) {
-  const key=import.meta.env.VITE_GNEWS_API_KEY;
-  if(!key) return null;
-  const q=city?`weather ${city}`:'weather alert forecast';
-  const res=await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&token=${key}`);
-  if(!res.ok) return null;
-  const d=await res.json();
-  return d.articles?.map(a=>({
-    title:a.title, description:a.description, url:a.url,
-    source:a.source?.name||'News', publishedAt:a.publishedAt,
-    image:a.image, category:'News', color:'var(--blue)',
-  }))||null;
+  const q = city ? `weather ${city}` : 'weather alert forecast';
+
+  // 1) Serverless proxy (Vercel /api/news) — the production path. Keeps the
+  //    GNews key server-side only. Silently 404s on `npm run dev` since
+  //    plain Vite doesn't run serverless functions (use `vercel dev` for
+  //    that), which is expected and handled below.
+  try {
+    const res = await fetch(`/api/news?city=${encodeURIComponent(city || '')}`);
+    if (res.ok) {
+      const d = await res.json();
+      if (d.articles?.length) return mapArticles(d.articles);
+    }
+  } catch { /* fall through */ }
+
+  // 2) Direct client-side call — local-dev convenience only. Requires
+  //    VITE_GNEWS_API_KEY in .env; never relied on in production since the
+  //    key would ship in the bundle.
+  const key = import.meta.env.VITE_GNEWS_API_KEY;
+  if (key) {
+    try {
+      const res = await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&token=${key}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.articles?.length) return mapArticles(d.articles);
+      }
+    } catch { /* fall through */ }
+  }
+
+  return null;
+}
+
+function mapArticles(articles) {
+  return articles.map(a => ({
+    title: a.title, description: a.description, url: a.url,
+    source: a.source?.name || 'News', publishedAt: a.publishedAt,
+    image: a.image, category: 'News', color: 'var(--blue)',
+  }));
 }
 
 export default function LatestNews() {
@@ -47,7 +73,7 @@ export default function LatestNews() {
     try {
       const news = await fetchGNews(weather?.city);
       setItems(news?.length ? news : FALLBACK);
-      if (!news) setApiErr(!import.meta.env.VITE_GNEWS_API_KEY);
+      if (!news) setApiErr(true);
     } catch { setItems(FALLBACK); }
     finally { setLoading(false); }
   },[weather?.city]);
@@ -94,9 +120,9 @@ export default function LatestNews() {
 
       {loading ? <Skeleton isMobile={isMobile}/> : listMode ? <ListView items={items.slice(0,8)}/> : <CardView featured={featured} rest={rest} isMobile={isMobile}/>}
 
-      {!import.meta.env.VITE_GNEWS_API_KEY&&(
+      {apiErr&&(
         <p style={{ fontSize:10,color:'var(--t3)',marginTop:12,paddingTop:10,borderTop:'1px solid var(--b1)',lineHeight:1.6 }}>
-          Add <code style={{ background:'var(--card2)',padding:'1px 5px',borderRadius:3 }}>VITE_GNEWS_API_KEY</code> to .env for live news (free at gnews.io — 100 req/day)
+          Showing curated content. On Vercel, set <code style={{ background:'var(--card2)',padding:'1px 5px',borderRadius:3 }}>GNEWS_API_KEY</code> in Project Settings → Environment Variables and redeploy. For local dev without <code style={{ background:'var(--card2)',padding:'1px 5px',borderRadius:3 }}>vercel dev</code>, add <code style={{ background:'var(--card2)',padding:'1px 5px',borderRadius:3 }}>VITE_GNEWS_API_KEY</code> to .env instead (free at gnews.io — 100 req/day).
         </p>
       )}
     </div>

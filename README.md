@@ -38,6 +38,35 @@ cp .env.example .env   # add your OpenWeatherMap API key
 npm run dev
 ```
 
+## Deploying to Vercel
+
+This is the part that actually bit us once already, so it's worth being explicit:
+
+Vite's `VITE_*` environment variables are baked into the JS bundle **at build
+time**, not read at runtime. Your local `.env` file is (correctly) gitignored,
+so Vercel's build server never sees it unless you add the same variables in
+**Project Settings → Environment Variables** in the Vercel dashboard — and
+after adding or changing them, you need to **trigger a new deployment**
+(redeploy from the dashboard, or push a new commit); existing builds don't
+retroactively pick up new env vars.
+
+Set these in Vercel:
+
+| Variable | Scope | Notes |
+|---|---|---|
+| `VITE_OPENWEATHER_API_KEY` | Client (build-time) | Powers current conditions, forecast, and the radar map |
+| `GNEWS_API_KEY` | **Server only** — no `VITE_` prefix | Read by `api/news.js`, a Vercel serverless function that proxies GNews so the key never ships to the browser |
+
+The news section specifically used to call GNews directly from the browser
+using `VITE_GNEWS_API_KEY`. That worked in local dev (where `.env` is loaded)
+and silently fell back to static curated content in any deployment that
+didn't have that same variable set — which is almost certainly what you saw.
+It's now proxied through `api/news.js` instead, both to fix that class of
+bug for good and because shipping a news API key in public client JS isn't
+great practice anyway. Local `npm run dev` (which doesn't run serverless
+functions) still has a client-side fallback via `VITE_GNEWS_API_KEY` if you
+want live news without running `vercel dev`.
+
 ## Notes on scope
 
 This pass focused on the highest-impact items: the animation engine, visual
