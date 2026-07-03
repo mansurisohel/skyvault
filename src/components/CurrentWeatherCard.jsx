@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, RefreshCw, Droplets, Eye, Thermometer, Sunrise, Sunset, Navigation } from 'lucide-react';
+import { Star, RefreshCw, Droplets, Eye, Thermometer, Sunrise, Sunset, Navigation, ArrowUp, ArrowDown } from 'lucide-react';
 import { useWeather } from '../context/WeatherContext';
 import { formatTime, getWindDirection } from '../services/weatherService';
 
@@ -46,8 +46,8 @@ export default function CurrentWeatherCard() {
           <p style={{ fontSize:14, fontWeight:600, textTransform:'capitalize', color:'var(--t2)', marginTop:4 }}>{weather.description}</p>
           <div style={{ display:'flex', gap:12, marginTop:5, flexWrap:'wrap' }}>
             <span style={{ fontSize:11, color:'var(--t3)' }}>Feels {weather.feelsLike}{u}</span>
-            <span style={{ fontSize:11, color:'var(--t3)' }}>↑ {weather.tempMax}{u}</span>
-            <span style={{ fontSize:11, color:'var(--t3)' }}>↓ {weather.tempMin}{u}</span>
+            <span style={{ fontSize:11, color:'var(--orange)', display:'flex', alignItems:'center', gap:2 }}><ArrowUp size={10}/>{weather.tempMax}{u}</span>
+            <span style={{ fontSize:11, color:'var(--blue)', display:'flex', alignItems:'center', gap:2 }}><ArrowDown size={10}/>{weather.tempMin}{u}</span>
           </div>
         </div>
 

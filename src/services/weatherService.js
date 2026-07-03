@@ -250,30 +250,110 @@ export function generateAIRecommendations(weather, aqi) {
   return recs;
 }
 
-export function getWeatherScene(condition, isNight, temp, localHour) {
-  const c = (condition || '').toLowerCase();
-  // Night overrides most conditions (except thunder/snow which show even at night)
-  if (isNight && !c.includes('thunder') && !c.includes('snow') && !c.includes('sleet')) return 'night';
-  // Precipitation
+// ── Time-of-day bucket, independent of weather condition. Drives the base
+// sky gradient + which ambient elements (stars, sun position, birds) show.
+export function getTimeBucket(localHour) {
+  if (localHour >= 5  && localHour < 7)  return 'sunrise';
+  if (localHour >= 7  && localHour < 11) return 'morning';
+  if (localHour >= 11 && localHour < 16) return 'afternoon';
+  if (localHour >= 16 && localHour < 19) return 'sunset';
+  if (localHour >= 19 && localHour < 23) return 'night';
+  return 'midnight'; // 23:00–05:00
+}
+
+// ── Season, adjusted for hemisphere (southern hemisphere is offset 6 months).
+export function getSeason(lat, date = new Date()) {
+  const month = date.getUTCMonth(); // 0-11
+  const north = (lat ?? 0) >= 0;
+  const bands = north
+    ? ['winter','winter','spring','spring','spring','summer','summer','summer','autumn','autumn','autumn','winter']
+    : ['summer','summer','autumn','autumn','autumn','winter','winter','winter','spring','spring','spring','summer'];
+  return bands[month];
+}
+
+// ── Weather "mood" key — the particle/atmosphere layer that sits above the
+// time-of-day sky. Accepts the full parsed weather object so it can react to
+// wind speed, humidity and recent precipitation, not just the OWM label.
+export function getWeatherScene(weather) {
+  if (!weather) return 'sunny';
+  const { mainCondition, isNight, temperature: temp, localTime, windSpeed, clouds, rainVolume } = weather;
+  const localHour = localTime ? localTime.getUTCHours() : 12;
+  const c = (mainCondition || '').toLowerCase();
+
+  // Precipitation takes priority regardless of time of day.
   if (c.includes('thunder') || c.includes('storm')) return 'thunder';
-  if (c.includes('snow') || c.includes('sleet') || c.includes('blizzard')) return 'snow';
-  if (c.includes('rain') && c.includes('drizzle')) return 'drizzle';
-  if (c.includes('drizzle') || c.includes('sprinkle')) return 'drizzle';
-  if (c.includes('rain') || c.includes('shower')) return 'rain';
+  if (c.includes('snow') || c.includes('sleet')) {
+    if (windSpeed > 12) return 'blizzard';
+    return 'snow';
+  }
+  if (c.includes('rain') || c.includes('shower') || c.includes('drizzle')) {
+    if (!isNight && clouds < 55) return 'rain-sun';       // sunshine breaking through rain
+    if ((rainVolume || 0) > 4 || windSpeed > 10) return 'heavy-rain';
+    if (c.includes('drizzle')) return 'drizzle';
+    return 'rain';
+  }
+  // Clear-after-rain: recent rainfall registered but sky has cleared.
+  if ((rainVolume || 0) > 0 && c.includes('clear')) return 'rainbow';
+
   // Atmosphere
   if (c.includes('dust') || c.includes('sand')) return 'dust';
   if (c.includes('fog') || c.includes('mist') || c.includes('haze') || c.includes('smoke')) return 'fog';
   if (c.includes('overcast')) return 'cloudy';
   if (c.includes('cloud') && !c.includes('few') && !c.includes('scattered')) return 'cloudy';
   if (c.includes('few cloud') || c.includes('scattered') || c.includes('partly')) return 'partly';
-  // Time-of-day for clear/sunny
-  if (localHour >= 5  && localHour < 8)  return 'morning';
-  if (localHour >= 18 && localHour < 21) return 'evening';
-  if (isNight) return 'night';
-  // Temperature extremes
+
+  // Wind, independent of cloud cover, when nothing else dominates.
+  if (windSpeed > 9 && !isNight) return 'windy';
+
+  // Temperature extremes.
+  if (temp !== undefined && temp <= -8) return 'extreme-cold';
   if (temp !== undefined && temp >= 36) return 'hot';
   if (temp !== undefined && temp <= 1)  return 'cold';
+
+  // Clear sky — let the time-of-day layer carry the visual weight.
+  if (isNight || localHour < 5 || localHour >= 21) return 'night';
   return 'sunny';
+}
+
+// Interpolates between score color stops for a smooth green -> amber -> red
+// gradient rather than 4 discrete buckets. Stops chosen to match the design
+// tokens --score-excellent / -good / -fair / -poor / -bad in index.css.
+const SCORE_STOPS = [
+  { at: 100, hex: '#34d399' }, // excellent — emerald
+  { at: 75,  hex: '#86efac' }, // good — light green
+  { at: 50,  hex: '#fbbf24' }, // fair — amber
+  { at: 25,  hex: '#fb923c' }, // poor — orange
+  { at: 0,   hex: '#f87171' }, // bad — red
+];
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function lerpColor(score) {
+  const clamped = Math.max(0, Math.min(100, score));
+  for (let i = 0; i < SCORE_STOPS.length - 1; i++) {
+    const hi = SCORE_STOPS[i], lo = SCORE_STOPS[i + 1];
+    if (clamped <= hi.at && clamped >= lo.at) {
+      const t = (clamped - lo.at) / (hi.at - lo.at);
+      const [r1, g1, b1] = hexToRgb(lo.hex);
+      const [r2, g2, b2] = hexToRgb(hi.hex);
+      const r = Math.round(r1 + (r2 - r1) * t);
+      const g = Math.round(g1 + (g2 - g1) * t);
+      const b = Math.round(b1 + (b2 - b1) * t);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+  return SCORE_STOPS[0].hex;
+}
+
+function scoreLabel(score) {
+  if (score >= 85) return 'Excellent';
+  if (score >= 65) return 'Good';
+  if (score >= 40) return 'Fair';
+  if (score >= 20) return 'Poor';
+  return 'Avoid';
 }
 
 export function getLifestyleRatings(weather, aqi) {
@@ -282,16 +362,14 @@ export function getLifestyleRatings(weather, aqi) {
   const c = (mainCondition || '').toLowerCase();
   const isRain = c.includes('rain') || c.includes('drizzle') || c.includes('thunder');
   const isSnow = c.includes('snow');
-  const isClear = c.includes('clear') || c.includes('sunny');
   const aqiVal = aqi?.main?.aqi || 1;
 
+  // Each underlying factor still scores 0-4 internally (same tuning as
+  // before), then the weighted average is rescaled to 0-100 for display.
   function score(vals) {
-    // vals is array of 0-4 (0=bad, 4=excellent)
-    const s = vals.reduce((a, b) => a + b, 0) / vals.length;
-    if (s >= 3.5) return { label: 'Excellent', ratingIcon: 'excellent', color: '#4ade80', score: s };
-    if (s >= 2.5) return { label: 'Good',      ratingIcon: 'good',      color: '#86efac', score: s };
-    if (s >= 1.5) return { label: 'Fair',      ratingIcon: 'fair',      color: '#fbbf24', score: s };
-    return            { label: 'Poor',      ratingIcon: 'poor',      color: '#f87171', score: s };
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length; // 0-4
+    const pct = Math.round((avg / 4) * 100);                   // 0-100
+    return { score: pct, label: scoreLabel(pct), color: lerpColor(pct) };
   }
 
   const tempOk = temperature >= 10 && temperature <= 28 ? 4 : temperature >= 5 && temperature <= 35 ? 2 : 0;
@@ -302,11 +380,11 @@ export function getLifestyleRatings(weather, aqi) {
   const humOk = humidity < 40 ? 3 : humidity < 70 ? 4 : humidity < 85 ? 2 : 0;
 
   return [
-    { activity: 'Running',   actIcon: 'running', ...score([tempOk, windOk, rainOk, aqiOk]) },
-    { activity: 'Cycling',   actIcon: 'cycling', ...score([tempOk, windOk, rainOk, aqiOk]) },
-    { activity: 'Gardening', actIcon: 'gardening', ...score([tempOk, rainOk, uvOk, humOk]) },
-    { activity: 'Picnic',    actIcon: 'picnic', ...score([tempOk, windOk, rainOk, uvOk]) },
-    { activity: 'Swimming',  actIcon: 'swimming', ...score([tempOk >= 3 ? 4 : 0, rainOk, uvOk]) },
-    { activity: 'Hiking',    actIcon: 'hiking', ...score([tempOk, windOk, rainOk, aqiOk, uvOk]) },
+    { activity: 'Running',   ...score([tempOk, windOk, rainOk, aqiOk]) },
+    { activity: 'Cycling',   ...score([tempOk, windOk, rainOk, aqiOk]) },
+    { activity: 'Gardening', ...score([tempOk, rainOk, uvOk, humOk]) },
+    { activity: 'Picnic',    ...score([tempOk, windOk, rainOk, uvOk]) },
+    { activity: 'Swimming',  ...score([tempOk >= 3 ? 4 : 0, rainOk, uvOk]) },
+    { activity: 'Hiking',    ...score([tempOk, windOk, rainOk, aqiOk, uvOk]) },
   ];
 }

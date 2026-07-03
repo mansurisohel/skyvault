@@ -22,8 +22,18 @@ export default function FavoritesPanel() {
         ))}
       </div>
       {items.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'20px 10px', color:'var(--t3)', fontSize:12, lineHeight:1.7 }}>
-          {tab === 'favorites' ? 'No favorites yet.\nClick ★ on any city.' : 'No recent searches.'}
+        <div style={{ textAlign:'center', padding:'22px 10px', color:'var(--t3)', fontSize:12, lineHeight:1.7 }}>
+          {tab === 'favorites' ? (
+            <>
+              <Star size={18} strokeWidth={1.5} style={{ display:'block', margin:'0 auto 8px', opacity:.4 }} />
+              No favorites yet.<br/>Tap the star on any city.
+            </>
+          ) : (
+            <>
+              <Clock size={18} strokeWidth={1.5} style={{ display:'block', margin:'0 auto 8px', opacity:.4 }} />
+              No recent searches.
+            </>
+          )}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>

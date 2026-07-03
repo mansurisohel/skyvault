@@ -1,13 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ═══════════════════════════════════════════
+   GLOBAL MOTION BASELINE
+   Every interactive element gets tactile press feedback and a default
+   transition so nothing in the app feels static or abrupt, even where a
+   component doesn't define its own animation.
+═══════════════════════════════════════════ */
+button,[role="button"]{ transition:transform .15s var(--spring),opacity .2s var(--ease); }
+button:active:not(:disabled),[role="button"]:active{ transform:scale(.96); }
+a{ transition:opacity .2s var(--ease),color .2s var(--ease); }
+::selection{ background:rgba(96,165,250,.35); color:#fff; }
 
 /* ═══════════════════════════════════════════
    DESIGN TOKENS
 ═══════════════════════════════════════════ */
 :root,[data-theme="dark"]{
-  --fd:'Space Grotesk',sans-serif;
-  --fb:'Inter',sans-serif;
+  --fd:'Manrope','SF Pro Display','Segoe UI',system-ui,sans-serif;
+  --fb:'Inter','SF Pro Text','Segoe UI',system-ui,-apple-system,sans-serif;
 
   --r0:4px; --r1:8px; --r2:12px; --r3:18px; --r4:24px; --r5:32px; --r99:9999px;
 
@@ -51,29 +62,17 @@
   --teal:#2dd4bf;   --teal-d:rgba(45,212,191,.16);
   --pink:#f472b6;   --pink-d:rgba(244,114,182,.16);
   --indigo:#818cf8; --indigo-d:rgba(129,140,248,.16);
+
+  /* Score system — used for activity suitability 0-100 */
+  --score-excellent:#34d399;
+  --score-good:#86efac;
+  --score-fair:#fbbf24;
+  --score-poor:#fb923c;
+  --score-bad:#f87171;
 }
 
-[data-theme="light"]{
-  --page:#edf1f9;
-  --card:rgba(255,255,255,.80);
-  --card2:rgba(255,255,255,.94);
-  --card-h:rgba(255,255,255,.99);
-  --input-bg:#fff;
-  --input-border:rgba(0,0,0,.15);
-  --input-border-focus:#2563eb;
-  --b1:rgba(0,0,0,.07);
-  --b2:rgba(0,0,0,.13);
-  --t1:#0d1424;
-  --t2:rgba(13,20,36,.65);
-  --t3:rgba(13,20,36,.40);
-  --acc:#2563eb;
-  --acc-d:rgba(37,99,235,.12);
-  --acc-g:rgba(37,99,235,.24);
-  --glass:rgba(237,241,249,.70);
-  --glass-b:rgba(255,255,255,.88);
-  --sb-t:rgba(0,0,0,.04);
-  --sb-h:rgba(0,0,0,.16);
-}
+/* Single premium theme — dark/light toggle intentionally removed for
+   visual consistency across the whole product. */
 
 /* ═══════════════════════════════════════════
    BASE
@@ -148,7 +147,8 @@ body{
 @keyframes rainFall{0%{transform:translateY(-80px) scaleX(1);opacity:.7}100%{transform:translateY(105vh) scaleX(1);opacity:0}}
 @keyframes snowFall{0%{transform:translateY(-20px) rotate(0deg) translateX(0)}50%{transform:translateY(50vh) rotate(180deg) translateX(15px)}100%{transform:translateY(105vh) rotate(360deg) translateX(-10px)}}
 @keyframes dustDrift{0%{transform:translateX(-5%);opacity:0}10%{opacity:1}90%{opacity:.8}100%{transform:translateX(108%);opacity:0}}
-@keyframes cloudDrift{0%{transform:translateX(0) scaleX(1)}100%{transform:translateX(160px) scaleX(1.04)}}
+@keyframes cloudDrift{0%{transform:translateX(-22vw)}100%{transform:translateX(122vw)}}
+@keyframes cloudDriftSlow{0%{transform:translateX(-30vw) scale(var(--cs,1))}100%{transform:translateX(130vw) scale(var(--cs,1))}}
 @keyframes starBlink{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
 @keyframes sunFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.04)}}
 @keyframes sunRay{0%,100%{opacity:.25;transform:rotate(0deg)}50%{opacity:.55;transform:rotate(180deg)}}
@@ -158,6 +158,12 @@ body{
 @keyframes mistFloat{0%{transform:translateX(0)}100%{transform:translateX(100px)}}
 @keyframes horizonGlow{0%,100%{opacity:.5}50%{opacity:.95}}
 @keyframes bgFade{from{opacity:0}to{opacity:1}}
+@keyframes birdFly{0%{opacity:0;transform:translate(-6vw,0) scale(1)}8%{opacity:.5}50%{transform:translate(50vw,-3.5vh) scale(1.05)}92%{opacity:.45}100%{opacity:0;transform:translate(106vw,-1vh) scale(1)}}
+@keyframes windDrift{0%{transform:translateX(-10%) scaleX(.6);opacity:0}12%{opacity:.6}88%{opacity:.4}100%{transform:translateX(115%) scaleX(1.3);opacity:0}}
+@keyframes leafFall{0%{transform:translateY(-6vh) translateX(0) rotate(0deg);opacity:0}8%{opacity:.85}92%{opacity:.7}100%{transform:translateY(108vh) translateX(70px) rotate(340deg);opacity:0}}
+@keyframes rainbowIn{from{opacity:0;transform:scale(.94) translateY(6px)}to{opacity:.55;transform:scale(1) translateY(0)}}
+@keyframes heatShimmerMove{0%,100%{transform:translateY(0) scaleY(1);opacity:.7}50%{transform:translateY(-6px) scaleY(1.06);opacity:1}}
+@keyframes swayEl{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 
 .fade-up{animation:fadeUp .5s var(--ease) both}
 .fade-in{animation:fadeIn .4s var(--ease) both}
@@ -176,56 +182,118 @@ body{
    WEATHER SCENE — full-screen animated bg
 ═══════════════════════════════════════════ */
 .wx-scene{
-  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;overflow:hidden;
   animation:bgFade 1.6s ease both;
 }
-.particle-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.particle-layer{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;pointer-events:none}
 
-/* ── Gradients per condition ── */
-/* dark */
-.wx-sunny      {background:radial-gradient(ellipse 80% 55% at 20% 12%,rgba(255,196,0,.16) 0%,transparent 60%),linear-gradient(155deg,#090f22 0%,#0e1d3c 55%,#090f22 100%)}
-.wx-hot        {background:radial-gradient(ellipse 80% 55% at 25% 12%,rgba(255,100,0,.22) 0%,transparent 58%),linear-gradient(155deg,#130a06 0%,#200f04 55%,#130a06 100%)}
-.wx-cold       {background:radial-gradient(ellipse at 50% 0%,rgba(150,210,255,.12) 0%,transparent 65%),linear-gradient(165deg,#070d18 0%,#0c1620 55%,#070d18 100%)}
-.wx-cloudy     {background:radial-gradient(ellipse at 50% 0%,rgba(110,130,155,.13) 0%,transparent 68%),linear-gradient(158deg,#0b1019 0%,#121921 55%,#0b1019 100%)}
-.wx-partly     {background:radial-gradient(ellipse 70% 50% at 25% 10%,rgba(255,180,0,.10) 0%,transparent 55%),radial-gradient(ellipse at 70% 0%,rgba(110,130,155,.10) 0%,transparent 50%),linear-gradient(158deg,#0a1020 0%,#111824 55%,#0a1020 100%)}
-.wx-rain       {background:radial-gradient(ellipse at 30% 0%,rgba(38,100,200,.16) 0%,transparent 60%),linear-gradient(174deg,#040c17 0%,#071322 55%,#040c17 100%)}
-.wx-drizzle    {background:radial-gradient(ellipse at 40% 0%,rgba(38,100,200,.10) 0%,transparent 60%),linear-gradient(174deg,#080e18 0%,#0b1520 55%,#080e18 100%)}
-.wx-thunder    {background:radial-gradient(ellipse at 50% 0%,rgba(80,28,175,.20) 0%,transparent 70%),linear-gradient(178deg,#040408 0%,#09091c 55%,#040408 100%)}
-.wx-snow       {background:radial-gradient(ellipse at 50% 0%,rgba(168,210,255,.13) 0%,transparent 68%),linear-gradient(165deg,#09101a 0%,#0f1822 55%,#09101a 100%)}
-.wx-fog        {background:radial-gradient(ellipse at 50% 30%,rgba(140,155,170,.14) 0%,transparent 65%),linear-gradient(165deg,#090f18 0%,#0e1620 55%,#090f18 100%)}
-.wx-dust       {background:radial-gradient(ellipse at 50% 30%,rgba(175,120,20,.18) 0%,transparent 68%),linear-gradient(158deg,#130e04 0%,#1e1408 55%,#130e04 100%)}
-.wx-morning    {background:radial-gradient(ellipse 80% 50% at 18% 20%,rgba(255,150,48,.14) 0%,transparent 58%),radial-gradient(ellipse at 82% 80%,rgba(96,40,195,.08) 0%,transparent 55%),linear-gradient(144deg,#080918 0%,#0c1228 55%,#080918 100%)}
-.wx-evening    {background:radial-gradient(ellipse 80% 50% at 82% 20%,rgba(230,78,18,.18) 0%,transparent 58%),radial-gradient(ellipse at 18% 80%,rgba(80,20,138,.12) 0%,transparent 55%),linear-gradient(144deg,#100808 0%,#1c0e10 55%,#100808 100%)}
-.wx-night      {background:radial-gradient(ellipse at 70% 20%,rgba(75,60,200,.12) 0%,transparent 60%),radial-gradient(ellipse at 18% 80%,rgba(58,38,160,.08) 0%,transparent 60%),linear-gradient(135deg,#020408 0%,#05080f 80%,#020408 100%)}
-/* light overrides */
-[data-theme="light"] .wx-sunny  {background:radial-gradient(ellipse 80% 55% at 20% 8%,rgba(255,220,50,.32) 0%,transparent 60%),linear-gradient(155deg,#d5e9ff 0%,#eef5ff 55%,#d5e8ff 100%)}
-[data-theme="light"] .wx-hot    {background:radial-gradient(ellipse 80% 55% at 25% 8%,rgba(255,140,0,.36) 0%,transparent 58%),linear-gradient(155deg,#ffe4cc 0%,#fff0e2 55%,#ffd8b8 100%)}
-[data-theme="light"] .wx-cold   {background:radial-gradient(ellipse at 50% 0%,rgba(185,225,255,.40) 0%,transparent 65%),linear-gradient(165deg,#d5e8f8 0%,#e8f4ff 55%,#d0e4f8 100%)}
-[data-theme="light"] .wx-cloudy {background:radial-gradient(ellipse at 50% 0%,rgba(148,168,188,.38) 0%,transparent 68%),linear-gradient(158deg,#c8d4e2 0%,#dce8f0 55%,#c8d4e2 100%)}
-[data-theme="light"] .wx-partly {background:radial-gradient(ellipse 70% 50% at 25% 8%,rgba(255,200,60,.28) 0%,transparent 55%),radial-gradient(ellipse at 70% 0%,rgba(148,168,188,.22) 0%,transparent 50%),linear-gradient(158deg,#d0ddf0 0%,#e4eefa 55%,#d0ddf0 100%)}
-[data-theme="light"] .wx-rain   {background:radial-gradient(ellipse at 30% 0%,rgba(58,118,215,.22) 0%,transparent 60%),linear-gradient(174deg,#b8ccdf 0%,#ccdcea 55%,#b8ccdf 100%)}
-[data-theme="light"] .wx-drizzle{background:radial-gradient(ellipse at 40% 0%,rgba(58,118,215,.14) 0%,transparent 60%),linear-gradient(174deg,#c8d8e8 0%,#d8e8f4 55%,#c8d8e8 100%)}
-[data-theme="light"] .wx-thunder{background:radial-gradient(ellipse at 50% 0%,rgba(110,58,200,.18) 0%,transparent 70%),linear-gradient(178deg,#c0b8d8 0%,#d0c8e4 55%,#c0b8d8 100%)}
-[data-theme="light"] .wx-snow   {background:radial-gradient(ellipse at 50% 0%,rgba(198,225,255,.42) 0%,transparent 68%),linear-gradient(165deg,#ddeeff 0%,#eef6ff 55%,#ddeeff 100%)}
-[data-theme="light"] .wx-fog    {background:radial-gradient(ellipse at 50% 30%,rgba(175,190,205,.40) 0%,transparent 65%),linear-gradient(165deg,#ccd8e4 0%,#dde8f2 55%,#ccd8e4 100%)}
-[data-theme="light"] .wx-dust   {background:radial-gradient(ellipse at 50% 30%,rgba(215,158,38,.30) 0%,transparent 68%),linear-gradient(158deg,#e8d4a8 0%,#f4e4c0 55%,#e8d4a8 100%)}
-[data-theme="light"] .wx-morning{background:radial-gradient(ellipse 80% 50% at 18% 14%,rgba(255,168,58,.30) 0%,transparent 58%),linear-gradient(144deg,#fce4c8 0%,#fff0e0 55%,#fce4c8 100%)}
-[data-theme="light"] .wx-evening{background:radial-gradient(ellipse 80% 50% at 82% 14%,rgba(255,118,38,.30) 0%,transparent 58%),linear-gradient(144deg,#ffd4b0 0%,#ffe8cc 55%,#ffd0a8 100%)}
-[data-theme="light"] .wx-night  {background:radial-gradient(ellipse at 50% 0%,rgba(180,188,220,.38) 0%,transparent 68%),linear-gradient(135deg,#d4d8e8 0%,#e0e8f0 55%,#d4d8e8 100%)}
+/* ── Legibility scrim: sits between the sky (z-index 0) and the UI content
+   (z-index 2). Because the time-of-day skies are now genuinely bright and
+   saturated, this keeps text/card contrast consistent without having to
+   darken the sky itself back down to "always looks like night" territory. */
+.wx-scrim{
+  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg,rgba(3,6,14,.28) 0%,rgba(3,6,14,.42) 38%,rgba(3,6,14,.54) 100%);
+}
+
+/* ── Weather mood overlays: layered ON TOP of the time-of-day sky. Bolder
+   and more saturated than a subtle tint so switching conditions reads as an
+   obvious change, not a barely-there variation. ── */
+.wx-sunny        {background:radial-gradient(ellipse 80% 55% at 20% 10%,rgba(255,206,60,.22) 0%,transparent 60%)}
+.wx-hot          {background:radial-gradient(ellipse 80% 55% at 25% 10%,rgba(255,110,10,.30) 0%,transparent 58%)}
+.wx-cold         {background:radial-gradient(ellipse at 50% 0%,rgba(150,210,255,.18) 0%,transparent 65%)}
+.wx-extreme-cold {background:radial-gradient(ellipse at 50% 0%,rgba(170,220,255,.26) 0%,transparent 65%)}
+.wx-cloudy       {background:radial-gradient(ellipse at 50% -5%,rgba(30,38,52,.72) 0%,rgba(30,38,52,.40) 48%,transparent 78%)}
+.wx-partly       {background:radial-gradient(ellipse 70% 50% at 25% 8%,rgba(255,190,50,.16) 0%,transparent 55%),radial-gradient(ellipse at 68% 0%,rgba(30,38,52,.34) 0%,transparent 55%)}
+.wx-windy        {background:radial-gradient(ellipse at 50% 0%,rgba(120,180,200,.16) 0%,transparent 62%)}
+.wx-rain         {background:radial-gradient(ellipse at 30% -5%,rgba(4,12,26,.68) 0%,transparent 68%)}
+.wx-drizzle      {background:radial-gradient(ellipse at 40% 0%,rgba(4,12,26,.42) 0%,transparent 62%)}
+.wx-heavy-rain   {background:radial-gradient(ellipse at 30% -5%,rgba(1,4,10,.82) 0%,transparent 72%)}
+.wx-thunder      {background:radial-gradient(ellipse at 50% -5%,rgba(24,8,44,.76) 0%,transparent 74%)}
+.wx-rain-sun     {background:radial-gradient(ellipse 70% 55% at 22% 8%,rgba(255,206,60,.22) 0%,transparent 55%),radial-gradient(ellipse at 58% 22%,rgba(4,12,26,.38) 0%,transparent 62%)}
+.wx-snow         {background:radial-gradient(ellipse at 50% -5%,rgba(190,220,255,.24) 0%,transparent 68%)}
+.wx-blizzard     {background:radial-gradient(ellipse at 50% -5%,rgba(200,225,255,.32) 0%,transparent 66%)}
+.wx-fog          {background:radial-gradient(ellipse at 50% 25%,rgba(150,165,180,.36) 0%,transparent 68%)}
+.wx-dust         {background:radial-gradient(ellipse at 50% 25%,rgba(190,130,20,.34) 0%,transparent 68%)}
+.wx-rainbow      {background:radial-gradient(ellipse 80% 55% at 25% 8%,rgba(255,214,70,.22) 0%,transparent 58%)}
+.wx-night        {background:transparent}
+/* Time-of-day base skies — layered by WeatherScene as the underlay.
+   Each bucket has a genuinely different brightness/hue so the app doesn't
+   read as "always night": afternoon is a vivid, saturated blue; sunrise
+   and sunset are dramatic warm gradients; only night/midnight are dark. */
+.wx-time-sunrise {background:
+  radial-gradient(ellipse 75% 45% at 50% 100%,rgba(255,170,110,.55) 0%,transparent 68%),
+  radial-gradient(ellipse 55% 35% at 22% 88%,rgba(255,120,120,.35) 0%,transparent 62%),
+  linear-gradient(180deg,#131c3e 0%,#3a2c58 38%,#8a4a5a 68%,#dd8552 100%);
+}
+.wx-time-morning {background:
+  radial-gradient(ellipse 70% 45% at 20% 12%,rgba(255,205,130,.30) 0%,transparent 58%),
+  linear-gradient(160deg,#123a63 0%,#1e5490 55%,#3777ae 100%);
+}
+.wx-time-afternoon {background:
+  radial-gradient(ellipse 75% 50% at 24% 6%,rgba(255,220,150,.24) 0%,transparent 58%),
+  linear-gradient(165deg,#0f4a86 0%,#1c6bb0 52%,#3f92d6 100%);
+}
+.wx-time-sunset {background:
+  radial-gradient(ellipse 80% 50% at 80% 92%,rgba(255,130,60,.55) 0%,transparent 62%),
+  radial-gradient(ellipse 55% 40% at 12% 96%,rgba(190,50,120,.32) 0%,transparent 58%),
+  linear-gradient(180deg,#100c26 0%,#3d1f4a 42%,#a3405a 72%,#e8823f 100%);
+}
+.wx-time-night {background:
+  radial-gradient(ellipse at 70% 15%,rgba(90,75,210,.16) 0%,transparent 60%),
+  radial-gradient(ellipse at 18% 80%,rgba(65,45,175,.10) 0%,transparent 60%),
+  linear-gradient(150deg,#040814 0%,#0a1330 55%,#040814 100%);
+}
+.wx-time-midnight {background:
+  radial-gradient(ellipse at 50% 10%,rgba(45,50,120,.10) 0%,transparent 62%),
+  linear-gradient(150deg,#010204 0%,#04070f 70%,#010204 100%);
+}
+
+/* ── Seasonal accent wash, layered lightly over the weather sky ── */
+.wx-season-spring{background:radial-gradient(ellipse at 30% 100%,rgba(255,150,190,.05) 0%,transparent 55%)}
+.wx-season-summer{background:radial-gradient(ellipse at 30% 0%,rgba(255,200,60,.04) 0%,transparent 55%)}
+.wx-season-autumn{background:radial-gradient(ellipse at 30% 100%,rgba(230,130,40,.06) 0%,transparent 55%)}
+.wx-season-winter{background:radial-gradient(ellipse at 30% 0%,rgba(140,190,255,.05) 0%,transparent 55%)}
 
 /* ── Particle elements ── */
 .rain-drop{position:absolute;top:-80px;border-radius:99px;background:linear-gradient(to bottom,transparent,rgba(140,195,255,.55));animation:rainFall linear infinite}
 .snow-flake{position:absolute;top:-20px;border-radius:50%;background:rgba(220,240,255,.84);animation:snowFall linear infinite}
 .dust-streak{position:absolute;height:1.5px;border-radius:99px;background:rgba(200,148,58,.40);animation:dustDrift linear infinite}
-.cloud-puff{position:absolute;border-radius:50%;animation:cloudDrift linear infinite;filter:blur(3px)}
+.cloud-shape{position:absolute;animation:cloudDriftSlow linear infinite;will-change:transform}
 .star-dot{position:absolute;border-radius:50%;background:#fff;animation:starBlink ease-in-out infinite}
 .moon-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,246,200,.60) 0%,rgba(220,200,130,.20) 60%,transparent 80%);animation:moonGlow 4s ease-in-out infinite}
 .sun-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,222,80,.70) 0%,rgba(255,180,0,.28) 50%,transparent 70%);animation:sunFloat 6.5s ease-in-out infinite}
 .sun-ray-el{position:absolute;transform-origin:0 0;animation:sunRay 10s linear infinite}
 .heat-el{position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(to top,rgba(255,120,0,.08),transparent);filter:blur(6px);animation:heatWave 3.5s ease-in-out infinite}
 .mist-band{position:absolute;left:-20%;right:-20%;border-radius:50%;filter:blur(22px);animation:mistFloat linear infinite alternate}
-.lightning-el{position:absolute;inset:0;background:rgba(195,178,255,.14);animation:lightning 7s ease-in-out infinite;pointer-events:none}
+.lightning-el{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(195,178,255,.14);animation:lightning 7s ease-in-out infinite;pointer-events:none}
 .horizon-el{position:absolute;bottom:0;left:0;right:0;pointer-events:none;animation:horizonGlow 4.5s ease-in-out infinite}
+
+/* Bird silhouettes drifting across sunrise/morning skies */
+.bird-el{position:absolute;opacity:0;animation:birdFly linear infinite}
+.bird-el svg{display:block}
+
+/* Wind streak + swaying elements for "windy" scenes */
+.wind-streak{position:absolute;height:1px;border-radius:99px;background:linear-gradient(90deg,transparent,rgba(200,230,255,.28),transparent);animation:windDrift linear infinite}
+
+/* Falling leaves (autumn) / petals (spring) */
+.leaf-el,.petal-el{position:absolute;top:-24px;border-radius:2px 10px 2px 10px;animation:leafFall linear infinite}
+.petal-el{border-radius:50% 50% 50% 0}
+
+/* Rainbow arc (clear-after-rain) */
+.rainbow-arc{position:absolute;border-radius:50%;border-style:solid;border-color:transparent;pointer-events:none;opacity:0;animation:rainbowIn 2.4s ease .3s forwards}
+
+/* Frost vignette for extreme cold */
+.frost-vignette{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(200,230,255,.10) 100%);
+  box-shadow:inset 0 0 90px rgba(210,235,255,.14),inset 0 0 220px rgba(180,215,255,.08);
+}
+
+/* Heat shimmer distortion band for heatwaves */
+.heat-shimmer{position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;
+  background:linear-gradient(to top,rgba(255,140,20,.05),transparent);
+  animation:heatShimmerMove 2.6s ease-in-out infinite;filter:blur(1px);
+}
 
 /* ═══════════════════════════════════════════
    PILLS / TABS
@@ -254,11 +322,31 @@ body{
 .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r99);font-size:10px;font-weight:700;letter-spacing:.05em}
 
 /* ═══════════════════════════════════════════
+   SCORE RING — 0-100 activity suitability
+═══════════════════════════════════════════ */
+.score-ring-svg{transform:rotate(-90deg)}
+.score-ring-track{fill:none;stroke-width:4}
+.score-ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s var(--spring)}
+.score-num{font-family:var(--fd);font-weight:700;transition:color .3s}
+
+/* ═══════════════════════════════════════════
    RESPONSIVE LAYOUT
 ═══════════════════════════════════════════ */
-.dash-grid{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start}
+.dash-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
 .main-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 .side-col{display:flex;flex-direction:column;gap:14px}
+
+/* Wide desktop: sidebar grows a touch and we allow two-up rows in main col */
+@media(min-width:1280px){
+  .dash-grid{grid-template-columns:1fr 320px}
+}
+
+/* Card-row: place two cards side-by-side instead of stacked full-width.
+   Falls back to stacked below 860px so nothing gets cramped. */
+.card-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:860px){
+  .card-row{grid-template-columns:1fr}
+}
 
 /* Tablet */
 @media(max-width:1000px){
@@ -285,7 +373,57 @@ body{
 /* ═══════════════════════════════════════════
    MOBILE HEADER
 ═══════════════════════════════════════════ */
+/* ── Brand mark: the actual logo shown as-is (no boxed backdrop that
+   doesn't exist in the source artwork), enlarged, with an ambient glow. ── */
+.hdr-logo-badge{
+  width:46px; height:46px; flex-shrink:0; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.hdr-logo-badge::before{
+  content:''; position:absolute; inset:-10px; z-index:-1; border-radius:50%;
+  background:radial-gradient(circle,rgba(96,165,250,.38) 0%,rgba(96,165,250,0) 70%);
+  filter:blur(6px); animation:badgeGlowPulse 3.6s ease-in-out infinite;
+}
+@keyframes badgeGlowPulse{ 0%,100%{ opacity:.65; transform:scale(1); } 50%{ opacity:1; transform:scale(1.08); } }
+.hdr-logo-badge img{
+  width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 3px 12px rgba(59,130,246,.45));
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.hdr-logo-badge:hover img{ transform:scale(1.08) rotate(-8deg); }
+.hdr-wordmark{ font-family:var(--fd); font-weight:800; font-size:21px; letter-spacing:-.02em; white-space:nowrap; line-height:1; }
+.hdr-wordmark .sky{ background:linear-gradient(135deg,#7dd3fc,#38bdf8); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hdr-wordmark .vault{ color:var(--t1); }
+@media(max-width:600px){ .hdr-logo-badge{ width:38px; height:38px; } .hdr-wordmark{ font-size:17px; } }
+@media(max-width:340px){ .hdr-wordmark{ display:none; } }
+
+/* ── Shine sweep: a light streak that glides across an element on a loop.
+   Used on the welcome-screen hero logo and primary CTA for a premium,
+   "just polished" feel without being distracting elsewhere. ── */
+.logo-shine-wrap{ position:relative; display:inline-block; overflow:hidden; border-radius:20px; }
+.logo-shine-wrap::after{
+  content:''; position:absolute; top:-60%; left:-60%; width:38%; height:220%;
+  background:linear-gradient(120deg,transparent,rgba(255,255,255,.6),transparent);
+  transform:rotate(18deg); animation:logoShine 3.6s ease-in-out infinite;
+}
+@keyframes logoShine{ 0%,40%{ left:-60%; } 100%{ left:140%; } }
+
+.cta-shine{ position:relative; overflow:hidden; }
+.cta-shine::after{
+  content:''; position:absolute; top:0; left:-60%; width:32%; height:100%;
+  background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:skewX(-18deg); animation:ctaShine 3.8s ease-in-out infinite;
+}
+@keyframes ctaShine{ 0%,55%{ left:-60%; } 100%{ left:140%; } }
+
+.sparkle{ position:absolute; pointer-events:none; animation:sparkleTwinkle ease-in-out infinite; }
+@keyframes sparkleTwinkle{ 0%,100%{ opacity:0; transform:scale(.3) rotate(0deg); } 45%,55%{ opacity:1; transform:scale(1) rotate(50deg); } }
+
+.hero-glow-blob{ position:absolute; border-radius:50%; filter:blur(50px); pointer-events:none; animation:heroGlowFloat ease-in-out infinite; }
+@keyframes heroGlowFloat{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(14px,-18px) scale(1.08); } }
+
 .hdr-wrap{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
+
 .hdr-search{flex:1 1 200px;min-width:0}
 @media(max-width:600px){
   .hdr-wrap{padding:8px 12px;gap:8px}
@@ -338,10 +476,11 @@ body{
   .metrics-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Lifestyle grid ── */
+/* ── Lifestyle grid: auto-fill so it fills available width instead of
+   always sitting at a fixed 3 columns on wide screens ── */
 .lifestyle-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 9px;
 }
 @media(max-width:640px) {
@@ -360,17 +499,6 @@ body{
 @media(max-width:480px) {
   .ai-grid { grid-template-columns: 1fr; }
 }
-
-/* ── Day row temp range ── */
-.day-range { display:flex; align-items:center; gap:6px; min-width:110px; flex-shrink:0; }
-@media(max-width:480px) {
-  .day-range { min-width:80px; gap:4px; }
-  .day-range span { font-size:10px !important; min-width:20px !important; }
-}
-
-/* ── Hide description on very small ── */
-.day-desc { flex:1; font-size:11px; color:var(--t3); text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-@media(max-width:400px) { .day-desc { display:none; } }
 
 /* ── Forecast header ── */
 .forecast-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
@@ -406,7 +534,7 @@ body{
   max-height:60vh; overflow-y:auto;
 }
 
-/* ── News section ── */
+/* ── News section (LatestNews.jsx — do not modify the component, hook stays) ── */
 .news-featured { border-radius:var(--r3); overflow:hidden; }
 .news-img { height:160px; }
 @media(max-width:480px) {
@@ -416,7 +544,22 @@ body{
 /* ── Map height ── */
 .map-frame { height:clamp(220px,36vw,400px); }
 @media(max-width:480px) {
-  .map-frame { height:220px; }
+  .map-frame { height:260px; }
+}
+
+/* ── Map full-screen takeover (mobile-friendly radar view) ── */
+.map-fullscreen{
+  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1000; border-radius:0 !important;
+  display:flex; flex-direction:column; height:100vh; height:100dvh;
+}
+.map-fullscreen .map-frame{ flex:1; height:auto !important; }
+
+/* ── Opacity slider ── */
+.opacity-slider{ -webkit-appearance:none; appearance:none; height:4px; border-radius:99px; background:var(--b2); outline:none; cursor:pointer; }
+.opacity-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); box-shadow:0 1px 4px rgba(0,0,0,.4); cursor:pointer; }
+.opacity-slider::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); cursor:pointer; }
+@media(max-width:480px){
+  .map-layer-tabs button{ padding:5px 9px !important; font-size:10px !important; }
 }
 
 /* ── Pill tabs on mobile ── */
@@ -424,7 +567,96 @@ body{
   .pill-tab { padding:5px 8px; font-size:10px; }
 }
 
-/* ── DayRow: compact mode ── */
+/* ═══════════════════════════════════════════
+   FORECAST — horizontal scrolling cards
+═══════════════════════════════════════════ */
+
+/* Shared scroll-snap row used by both hourly and daily forecast */
+.fc-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 2px 2px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-h) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.fc-row::-webkit-scrollbar { height: 4px; }
+.fc-row::-webkit-scrollbar-thumb { background: var(--sb-h); border-radius: 99px; }
+
+/* Hourly card */
+.fc-hour-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 14px;
+  border-radius: var(--r3);
+  background: var(--card2);
+  border: 1px solid var(--b1);
+  transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--spring);
+}
+.fc-hour-card.now {
+  border-color: var(--acc);
+  background: var(--acc-d);
+}
+.fc-hour-card:hover { transform: translateY(-2px); border-color: var(--b2); }
+@media(max-width:480px) {
+  .fc-hour-card { width: 72px; padding: 10px 6px 12px; }
+}
+
+/* Daily card — richer than the old single-line row */
+.fc-day-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 16px;
+  border-radius: var(--r3);
+  background: var(--card2);
+  border: 1px solid var(--b1);
+  transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--spring);
+  cursor: pointer;
+}
+.fc-day-card.today { border-color: var(--acc); background: var(--acc-d); }
+.fc-day-card.selected {
+  border-color: var(--teal);
+  background: var(--card-h);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18), inset 0 0 0 1px rgba(45,212,191,.25);
+}
+.fc-day-card:hover { transform: translateY(-2px); }
+@media(max-width:480px) {
+  .fc-day-card { width: 112px; padding: 12px 8px 14px; }
+}
+@media(max-width:360px) {
+  .fc-day-card { width: 100px; }
+}
+
+/* Mini range bar inside the daily card */
+.fc-range-track { width: 100%; height: 3px; background: var(--b1); border-radius: 99px; overflow: hidden; position: relative; }
+.fc-range-fill { position: absolute; height: 100%; border-radius: 99px; background: linear-gradient(to right,#60a5fa,#f97316); }
+
+/* Detail panel shown below the daily strip for the selected day */
+.fc-detail-panel {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--b1);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+}
+@media(max-width:480px) {
+  .fc-detail-panel { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── DayRow: compact mode (legacy hook kept for safety, unused by new layout) ── */
 .day-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r2); transition:background .18s; }
 @media(max-width:360px) {
   .day-row { gap:6px; padding:7px 6px; }

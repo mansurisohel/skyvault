@@ -13,12 +13,13 @@ import LifestylePanel from './components/LifestylePanel';
 import LatestNews     from './components/LatestNews';
 
 function Dashboard() {
-  const { weather, loading, error, scene, setError } = useWeather();
+  const { weather, loading, error, scene, timeBucket, season, setError } = useWeather();
 
   return (
     <div style={{ minHeight:'100vh', position:'relative', background:'var(--page)' }}>
-      {/* Animated weather scene (fixed background) */}
-      <WeatherScene condition={scene} />
+      {/* Cinematic weather scene (fixed background): time-of-day + condition + season */}
+      <WeatherScene condition={scene} timeBucket={timeBucket} season={season} />
+      <div className="wx-scrim" />
 
       {/* All content above the scene */}
       <div style={{ position:'relative', zIndex:2 }}>

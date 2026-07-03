@@ -1,4 +1,4 @@
-import { AlertTriangle, CloudRain, Thermometer, Wind, Zap, Eye, Activity, MoonStar, Sun } from 'lucide-react';
+import { AlertTriangle, CloudRain, Thermometer, Wind, Zap, Eye, Activity, MoonStar, Sun, CheckCircle2 } from 'lucide-react';
 import { useWeather } from '../context/WeatherContext';
 import { getUVLabel, getAQILabel, getMoonPhase } from '../services/weatherService';
 
@@ -11,14 +11,22 @@ export default function AlertsPanel() {
 
   return (
     <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
-      {alerts.length>0 && (
-        <div className="card fade-up card-pad">
-          <span className="label">Active Alerts</span>
+      <div className="card fade-up card-pad">
+        <span className="label">Active Alerts</span>
+        {alerts.length>0 ? (
           <div style={{ display:'flex',flexDirection:'column',gap:7 }}>
             {alerts.map((a,i)=><AlertBadge key={i} {...a} idx={i}/>)}
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'rgba(74,222,128,.07)',border:'1px solid rgba(74,222,128,.18)',borderLeft:'3px solid var(--green)',borderRadius:'var(--r2)' }}>
+            <CheckCircle2 size={15} color="var(--green)" style={{ flexShrink:0 }}/>
+            <div>
+              <div style={{ fontSize:11.5,fontWeight:700,color:'var(--t1)' }}>All Clear</div>
+              <div style={{ fontSize:10.5,color:'var(--t3)',marginTop:1 }}>No active weather alerts for this location.</div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="card fade-up d2 card-pad">
         <span className="label">Health Index</span>

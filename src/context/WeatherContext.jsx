@@ -7,8 +7,9 @@ import {
   fetchAirQuality,
   parseCurrentWeather,
   parseForecast,
-  getWeatherBackground,
   getWeatherScene,
+  getTimeBucket,
+  getSeason,
   getUVIndex,
   generateAIRecommendations,
 } from '../services/weatherService';
@@ -22,9 +23,9 @@ export function WeatherProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [units, setUnits] = useState(() => localStorage.getItem('wx_units') || 'metric');
-  const [theme, setTheme] = useState(() => localStorage.getItem('wx_theme') || 'dark');
-  const [bgCondition, setBgCondition] = useState('sunny');
   const [scene, setScene] = useState('sunny');
+  const [timeBucket, setTimeBucket] = useState(() => getTimeBucket(new Date().getHours()));
+  const [season, setSeason] = useState(() => getSeason(20, new Date()));
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem('wx_favorites') || '[]'); } catch { return []; }
   });
@@ -33,11 +34,6 @@ export function WeatherProvider({ children }) {
   });
   const [aiRecs, setAiRecs] = useState([]);
   const [uvIndex, setUvIndex] = useState(null);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('wx_theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     localStorage.setItem('wx_units', units);
@@ -67,8 +63,9 @@ export function WeatherProvider({ children }) {
     setAirQuality(aqData?.list?.[0] || null);
     setUvIndex(uv);
     setAiRecs(recs);
-    setBgCondition(getWeatherBackground(parsed.mainCondition, parsed.isNight));
-    setScene(getWeatherScene(parsed.mainCondition, parsed.isNight, parsed.temperature, localHour));
+    setScene(getWeatherScene(enriched));
+    setTimeBucket(getTimeBucket(localHour));
+    setSeason(getSeason(parsed.lat, parsed.localTime));
   }, []);
 
   const searchWeather = useCallback(async (city) => {
@@ -134,10 +131,6 @@ export function WeatherProvider({ children }) {
     setUnits(prev => prev === 'metric' ? 'imperial' : 'metric');
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  }, []);
-
   // Re-fetch when units change and we have a city
   useEffect(() => {
     if (weather?.city) {
@@ -148,10 +141,10 @@ export function WeatherProvider({ children }) {
   return (
     <WeatherContext.Provider value={{
       weather, forecast, airQuality, loading, error,
-      units, theme, bgCondition, scene, favorites, recentSearches,
+      units, scene, timeBucket, season, favorites, recentSearches,
       aiRecs, uvIndex,
       searchWeather, detectLocation, refreshWeather,
-      toggleFavorite, toggleUnits, toggleTheme,
+      toggleFavorite, toggleUnits,
       setError,
     }}>
       {children}
