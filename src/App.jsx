@@ -1,4 +1,5 @@
 import { WeatherProvider, useWeather } from './context/WeatherContext';
+import { getAmbientTheme } from './services/weatherService';
 import Header         from './components/Header';
 import WelcomeScreen  from './components/WelcomeScreen';
 import WeatherScene   from './components/WeatherScene';
@@ -14,12 +15,16 @@ import LatestNews     from './components/LatestNews';
 
 function Dashboard() {
   const { weather, loading, error, scene, timeBucket, season, setError } = useWeather();
+  const ambient = getAmbientTheme(scene, timeBucket);
 
   return (
-    <div style={{ minHeight:'100vh', position:'relative', background:'var(--page)' }}>
+    <div style={{ minHeight:'100vh', position:'relative', background:'var(--page)', ...ambient }}>
       {/* Cinematic weather scene (fixed background): time-of-day + condition + season */}
       <WeatherScene condition={scene} timeBucket={timeBucket} season={season} />
       <div className="wx-scrim" />
+      {/* Weather-reactive ambient wash — ties the whole UI's lighting/warmth to
+          the actual current conditions, not just the background illustration */}
+      <div className="wx-ambient-wash" />
 
       {/* All content above the scene */}
       <div style={{ position:'relative', zIndex:2 }}>

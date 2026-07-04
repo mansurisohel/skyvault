@@ -1,6 +1,7 @@
-import { Gauge, Wind, Droplets, Eye, Cloud, Sun, Activity, MoonStar, Sunrise, Sunset, Thermometer } from 'lucide-react';
+import { Gauge, Wind, Droplets, Eye, Cloud, Sun, Activity, Sunrise, Sunset, Thermometer } from 'lucide-react';
 import { useWeather } from '../context/WeatherContext';
 import { getUVLabel, getAQILabel, getWindDirection, getMoonPhase, formatTime } from '../services/weatherService';
+import MoonPhaseIcon from './MoonPhaseIcon';
 
 export default function MetricsGrid() {
   const { weather, airQuality, uvIndex, units } = useWeather();
@@ -22,7 +23,6 @@ export default function MetricsGrid() {
     { icon:<Sun size={14}/>,         label:'UV Index',    val:`${(uvIndex||0).toFixed(1)}`,             unit:'',    col:uvi.color,       bar:Math.min((uvIndex||0)/11,1),        barC:uvi.color,       sub:uvi.label },
     { icon:<Activity size={14}/>,    label:'Air Quality', val:aqv?`${aqv}/5`:'--',                      unit:'',    col:aqi.color,       bar:aqv?aqv/5:null,                     barC:aqi.color,       sub:aqv?aqi.label:'No data' },
     { icon:<Thermometer size={14}/>, label:'Dew Point',   val:`${weather.dewPoint}`,                    unit:u,     col:'var(--pink)',   sub:weather.dewPoint>20?'Uncomfortable':weather.dewPoint>13?'Comfortable':'Dry' },
-    { icon:<MoonStar size={14}/>,    label:'Moon',        val:moon.name.split(' ').slice(0,2).join(' '),unit:'',    col:'#c4b5fd',       bar:moon.pct/100,                       barC:'#c4b5fd',       sub:`${moon.pct}% lit` },
   ];
 
   return (
@@ -30,6 +30,7 @@ export default function MetricsGrid() {
       <span className="label">Detailed Conditions</span>
       <div className="metrics-grid">
         {tiles.map((t,i) => <Tile key={i} {...t} idx={i}/>)}
+        <MoonTile moon={moon} idx={tiles.length}/>
       </div>
 
       {comp.pm2_5 && (
@@ -48,6 +49,26 @@ export default function MetricsGrid() {
       <div style={{ marginTop:16,paddingTop:14,borderTop:'1px solid var(--b1)' }}>
         <span className="label">Daylight Progress</span>
         <DaylightBar weather={weather}/>
+      </div>
+    </div>
+  );
+}
+
+function MoonTile({ moon, idx }) {
+  return (
+    <div className={`fade-up d${Math.min(idx+1,8)}`}
+      style={{ background:'var(--card2)',border:'1px solid var(--b1)',borderRadius:'var(--r3)',padding:'12px 13px',display:'flex',flexDirection:'column' }}>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8 }}>
+        <MoonPhaseIcon angle={moon.angle} size={26} />
+        <span className="label-sm" style={{ textAlign:'right' }}>Moon Phase</span>
+      </div>
+      <div style={{ display:'flex',alignItems:'center',gap:10,flex:1 }}>
+        <MoonPhaseIcon angle={moon.angle} size={40} />
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:13,fontWeight:800,fontFamily:'var(--fd)',color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>{moon.name}</div>
+          <div style={{ fontSize:10,color:'var(--t3)',marginTop:2 }}>{moon.pct}% illuminated</div>
+          <div style={{ fontSize:9.5,color:'var(--t3)',opacity:.8 }}>Day {moon.age} of cycle</div>
+        </div>
       </div>
     </div>
   );

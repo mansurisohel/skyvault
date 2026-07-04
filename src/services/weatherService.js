@@ -151,20 +151,26 @@ export function getWindDirection(deg) {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
-export function getMoonPhase() {
-  const now = new Date();
-  const known = new Date('2000-01-06T00:00:00Z');
-  const diff = (now - known) / (1000 * 60 * 60 * 24);
-  const cycle = 29.53;
-  const phase = ((diff % cycle) + cycle) % cycle;
-  if (phase < 1.85) return { name: 'New Moon', pct: 0, symbol: '●' };
-  if (phase < 7.38) return { name: 'Waxing Crescent', pct: 25, symbol: '◐' };
-  if (phase < 9.22) return { name: 'First Quarter', pct: 50, symbol: '◑' };
-  if (phase < 14.77) return { name: 'Waxing Gibbous', pct: 75, symbol: '◕' };
-  if (phase < 16.61) return { name: 'Full Moon', pct: 100, symbol: '○' };
-  if (phase < 22.15) return { name: 'Waning Gibbous', pct: 75, symbol: '◔' };
-  if (phase < 23.99) return { name: 'Last Quarter', pct: 50, symbol: '◑' };
-  return { name: 'Waning Crescent', pct: 25, symbol: '◐' };
+export function getMoonPhase(date = new Date()) {
+  const known = new Date('2000-01-06T18:14:00Z'); // reference new moon (accurate to the hour)
+  const cycle = 29.530588853; // synodic month, days
+  const diff = (date - known) / (1000 * 60 * 60 * 24);
+  const age = ((diff % cycle) + cycle) % cycle;        // days since last new moon, 0..cycle
+  const angle = (age / cycle) * 2 * Math.PI;           // 0=new, π=full, 2π=new
+  const illumination = Math.round(((1 - Math.cos(angle)) / 2) * 1000) / 10; // continuous %, one decimal
+  const waxing = age < cycle / 2;
+
+  let name;
+  if (age < 1.85) name = 'New Moon';
+  else if (age < 7.38) name = 'Waxing Crescent';
+  else if (age < 9.22) name = 'First Quarter';
+  else if (age < 14.77) name = 'Waxing Gibbous';
+  else if (age < 16.61) name = 'Full Moon';
+  else if (age < 22.15) name = 'Waning Gibbous';
+  else if (age < 23.99) name = 'Last Quarter';
+  else name = 'Waning Crescent';
+
+  return { name, pct: Math.round(illumination), illumination, angle, waxing, age: Math.round(age * 10) / 10 };
 }
 
 export function getUVIndex(lat, clouds, hour) {
@@ -259,6 +265,46 @@ export function getTimeBucket(localHour) {
   if (localHour >= 16 && localHour < 19) return 'sunset';
   if (localHour >= 19 && localHour < 23) return 'night';
   return 'midnight'; // 23:00–05:00
+}
+
+// ── Ambient UI theme: derives CSS custom properties from the current scene
+// + time-of-day so the interface itself (card tint, full-screen wash) shifts
+// with the weather, not just the animated background behind it. This is the
+// mechanism that fixes "the UI always looks like night regardless of
+// conditions" — daytime + sunny now visibly warms the whole UI, rain/cloud
+// visibly cools and mutes it, and night stays close to neutral since a dark
+// UI genuinely is correct after dark.
+const AMBIENT_PALETTE = {
+  sunny:         { wash: '255,196,110', card: '255,214,150' },
+  hot:           { wash: '255,150,70',  card: '255,180,110' },
+  partly:        { wash: '255,205,140', card: '255,220,170' },
+  cloudy:        { wash: '170,182,200', card: '190,200,214' },
+  windy:         { wash: '160,195,205', card: '180,205,214' },
+  rain:          { wash: '110,140,180', card: '130,155,190' },
+  drizzle:       { wash: '130,155,185', card: '150,170,195' },
+  'heavy-rain':  { wash: '80,105,150',  card: '100,125,165' },
+  thunder:       { wash: '90,70,140',   card: '110,90,155' },
+  'rain-sun':    { wash: '220,195,140', card: '230,205,160' },
+  snow:          { wash: '200,215,235', card: '210,222,240' },
+  blizzard:      { wash: '210,225,240', card: '218,230,245' },
+  fog:           { wash: '175,180,190', card: '185,190,198' },
+  dust:          { wash: '200,150,90',  card: '210,165,105' },
+  'extreme-cold':{ wash: '190,215,240', card: '200,222,244' },
+  rainbow:       { wash: '230,205,150', card: '235,212,165' },
+  cold:          { wash: '170,195,220', card: '185,205,225' },
+  night:         { wash: '120,120,160', card: '130,130,165' },
+};
+const TIME_INTENSITY = { sunrise: 0.55, morning: 0.75, afternoon: 0.9, sunset: 0.65, night: 0.22, midnight: 0.12 };
+
+export function getAmbientTheme(scene, timeBucket) {
+  const p = AMBIENT_PALETTE[scene] || AMBIENT_PALETTE.sunny;
+  const intensity = TIME_INTENSITY[timeBucket] ?? 0.6;
+  const washOp = (0.10 * intensity).toFixed(3);
+  const cardOp = (0.05 * intensity).toFixed(3);
+  return {
+    '--amb-wash': `rgba(${p.wash},${washOp})`,
+    '--amb-card': `rgba(${p.card},${cardOp})`,
+  };
 }
 
 // ── Season, adjusted for hemisphere (southern hemisphere is offset 6 months).

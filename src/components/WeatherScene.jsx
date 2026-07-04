@@ -69,6 +69,7 @@ function Stars({ n = 85, dim = false }) {
 function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,178,0.55)', w = 200, seed = 0 }) {
   const h = w * 0.52;
   const gid = `cg${Math.round(seed * 10000)}`;
+  const fid = `cf${Math.round(seed * 10000)}`;
 
   // Procedurally place 9-12 puffs along a rough cloud silhouette, jittering
   // position/size per-seed so each cloud instance is genuinely different.
@@ -88,22 +89,29 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
   });
 
   return (
-    <svg width={w} height={h} viewBox="0 0 200 104" style={{ display: 'block', filter: 'blur(1.6px)' }}>
+    <svg width={w} height={h} viewBox="-15 -15 230 134" style={{ display: 'block' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"  stopColor={tint} />
           <stop offset="55%" stopColor={tint} />
           <stop offset="100%" stopColor={shadeTint} />
         </linearGradient>
+        {/* Distorts the smooth ellipse silhouette into an organic, non-geometric
+            fluffy edge — the single biggest lever for "realistic vs cartoonish". */}
+        <filter id={fid} x="-25%" y="-25%" width="150%" height="150%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.045" numOctaves="2" seed={Math.round(seed * 97)} result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="13" xChannelSelector="R" yChannelSelector="G" />
+          <feGaussianBlur stdDeviation="1.4" />
+        </filter>
       </defs>
-      <g fill={`url(#${gid})`}>
+      <g fill={`url(#${gid})`} filter={`url(#${fid})`}>
         {puffs.map((p, i) => (
           <ellipse key={i} cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} />
         ))}
         <rect x="10" y="70" width="180" height="26" rx="13" />
       </g>
       {/* Soft underside shadow for grounding / volume */}
-      <ellipse cx="100" cy="90" rx="88" ry="14" fill={shadeTint} opacity="0.35" />
+      <ellipse cx="100" cy="90" rx="88" ry="14" fill={shadeTint} opacity="0.35" style={{ filter: 'blur(3px)' }} />
     </svg>
   );
 }

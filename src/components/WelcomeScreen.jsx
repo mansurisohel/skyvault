@@ -13,7 +13,7 @@ const QUICK=[
 export default function WelcomeScreen(){
   const {searchWeather,detectLocation,loading,favorites,recentSearches}=useWeather();
   return(
-    <div style={{ display:'flex',flexDirection:'column',alignItems:'center',minHeight:'62vh',padding:'clamp(28px,6vw,64px) clamp(12px,4vw,24px)',textAlign:'center',position:'relative' }}>
+    <div style={{ display:'flex',flexDirection:'column',alignItems:'center',minHeight:'62vh',padding:'clamp(28px,6vw,64px) clamp(12px,4vw,24px)',textAlign:'center',position:'relative',overflow:'hidden' }}>
       {/* Ambient glow blobs behind the hero */}
       <div className="hero-glow-blob" style={{ width:260,height:260,top:-40,left:'12%',background:'radial-gradient(circle,rgba(96,165,250,.22) 0%,transparent 70%)',animationDuration:'7s' }}/>
       <div className="hero-glow-blob" style={{ width:220,height:220,top:10,right:'10%',background:'radial-gradient(circle,rgba(125,211,252,.16) 0%,transparent 70%)',animationDuration:'8.5s',animationDelay:'-3s' }}/>

@@ -92,12 +92,12 @@ body{
    GLASS CARDS
 ═══════════════════════════════════════════ */
 .card{
-  background:var(--card);
+  background:linear-gradient(var(--amb-card,transparent),var(--amb-card,transparent)),var(--card);
   border:1px solid var(--b1);
   border-radius:var(--r4);
   backdrop-filter:blur(24px) saturate(1.5);
   -webkit-backdrop-filter:blur(24px) saturate(1.5);
-  transition:background .25s var(--ease),border-color .25s var(--ease);
+  transition:background .6s var(--ease),border-color .25s var(--ease);
 }
 .card-lift{
   transition:background .25s var(--ease),border-color .25s var(--ease),
@@ -148,7 +148,13 @@ body{
 @keyframes snowFall{0%{transform:translateY(-20px) rotate(0deg) translateX(0)}50%{transform:translateY(50vh) rotate(180deg) translateX(15px)}100%{transform:translateY(105vh) rotate(360deg) translateX(-10px)}}
 @keyframes dustDrift{0%{transform:translateX(-5%);opacity:0}10%{opacity:1}90%{opacity:.8}100%{transform:translateX(108%);opacity:0}}
 @keyframes cloudDrift{0%{transform:translateX(-22vw)}100%{transform:translateX(122vw)}}
-@keyframes cloudDriftSlow{0%{transform:translateX(-30vw) scale(var(--cs,1))}100%{transform:translateX(130vw) scale(var(--cs,1))}}
+@keyframes cloudDriftSlow{
+  0%   { transform:translate(-30vw,0)    scale(var(--cs,1)); }
+  25%  { transform:translate(20vw,-8px)  scale(var(--cs,1)); }
+  50%  { transform:translate(70vw,0)     scale(var(--cs,1)); }
+  75%  { transform:translate(100vw,7px)  scale(var(--cs,1)); }
+  100% { transform:translate(130vw,0)    scale(var(--cs,1)); }
+}
 @keyframes starBlink{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
 @keyframes sunFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.04)}}
 @keyframes sunRay{0%,100%{opacity:.25;transform:rotate(0deg)}50%{opacity:.55;transform:rotate(180deg)}}
@@ -194,6 +200,17 @@ body{
 .wx-scrim{
   position:fixed; top:0;left:0;right:0;bottom:0; z-index:1; pointer-events:none;
   background:linear-gradient(180deg,rgba(3,6,14,.28) 0%,rgba(3,6,14,.42) 38%,rgba(3,6,14,.54) 100%);
+}
+
+/* ── Ambient wash: a soft, full-viewport tint driven by --amb-wash (set from
+   getAmbientTheme). This is what makes sunny days read as warm/bright and
+   rain/cloud read as cool/muted at the UI level, not just in the scene
+   illustration behind everything. Transitions smoothly whenever the
+   underlying weather condition or time-of-day bucket changes. */
+.wx-ambient-wash{
+  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1; pointer-events:none;
+  background:var(--amb-wash,transparent);
+  transition:background 1.4s var(--ease);
 }
 
 /* ── Weather mood overlays: layered ON TOP of the time-of-day sky. Bolder
@@ -541,10 +558,17 @@ body{
   .news-img { height:120px; }
 }
 
-/* ── Map height ── */
-.map-frame { height:clamp(220px,36vw,400px); }
+/* ── Map height: tuned per breakpoint so it's never cramped on phones nor
+   disproportionately short on tablets/desktop ── */
+.map-frame { height:clamp(260px,42vw,440px); }
+@media(max-width:768px) {
+  .map-frame { height:clamp(240px,52vw,360px); }
+}
 @media(max-width:480px) {
-  .map-frame { height:260px; }
+  .map-frame { height:280px; }
+}
+@media(max-width:360px) {
+  .map-frame { height:240px; }
 }
 
 /* ── Map full-screen takeover (mobile-friendly radar view) ── */
@@ -554,12 +578,28 @@ body{
 }
 .map-fullscreen .map-frame{ flex:1; height:auto !important; }
 
-/* ── Opacity slider ── */
-.opacity-slider{ -webkit-appearance:none; appearance:none; height:4px; border-radius:99px; background:var(--b2); outline:none; cursor:pointer; }
+/* ── Opacity slider — thumb sized up on touch so it's actually draggable ── */
+.opacity-slider{ -webkit-appearance:none; appearance:none; height:4px; border-radius:99px; background:var(--b2); outline:none; cursor:pointer; touch-action:none; }
 .opacity-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); box-shadow:0 1px 4px rgba(0,0,0,.4); cursor:pointer; }
 .opacity-slider::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); cursor:pointer; }
+@media(max-width:768px){
+  .opacity-slider{ height:6px; }
+  .opacity-slider::-webkit-slider-thumb{ width:20px; height:20px; }
+  .opacity-slider::-moz-range-thumb{ width:20px; height:20px; }
+}
+
+/* ── Map toolbar: proper touch targets on mobile (44px minimum tap area per
+   platform guidelines — the original 26-28px buttons were too small) ── */
+@media(max-width:768px){
+  .map-layer-tabs button{ min-height:36px; padding:7px 12px !important; font-size:11.5px !important; }
+  .map-toolbar-icon-btn{ width:38px !important; height:38px !important; }
+}
 @media(max-width:480px){
-  .map-layer-tabs button{ padding:5px 9px !important; font-size:10px !important; }
+  .map-layer-tabs button{ padding:6px 10px !important; font-size:10.5px !important; }
+}
+@media(max-width:360px){
+  .map-layer-tabs{ gap:4px !important; }
+  .map-layer-tabs button{ padding:5px 8px !important; font-size:10px !important; }
 }
 
 /* ── Pill tabs on mobile ── */

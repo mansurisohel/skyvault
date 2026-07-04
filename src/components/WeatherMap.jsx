@@ -42,6 +42,9 @@ html,body,#map{height:100%;width:100%;background:#080c18;font-family:Inter,syste
 .sweep-ring.r2{animation-delay:.85s}
 .sweep-ring.r3{animation-delay:1.7s}
 @keyframes sweepGrow{0%{width:0;height:0;opacity:.85}100%{width:130px;height:130px;opacity:0}}
+.map-pin{filter:drop-shadow(0 4px 10px rgba(0,0,0,.45));animation:pinDrop .55s cubic-bezier(.34,1.56,.64,1) both;transform-origin:50% 100%}
+@keyframes pinDrop{0%{transform:translateY(-26px) scale(.4);opacity:0}60%{opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+.map-pin:hover{cursor:pointer}
 </style>
 </head>
 <body>
@@ -69,9 +72,19 @@ html,body,#map{height:100%;width:100%;background:#080c18;font-family:Inter,syste
   }
   function setOpacity(op){ if(wxL) wxL.setOpacity(op); var pane=map.getPane('tilePane'); if(pane) pane.style.setProperty('--op', String(op)); }
   setLayer(${JSON.stringify(layer)}, ${opacity});
-  // Location pin + a soft animated radar-sweep ring around it (visual life, not fake data)
-  var pt=map.latLngToLayerPoint([${lat},${lon}]);
-  var pin=L.circleMarker([${lat},${lon}],{radius:8,fillColor:'#5b9cf6',color:'#fff',weight:2.5,opacity:1,fillOpacity:.95}).addTo(map);
+  // Location pin (a proper map pin, anchored at its tip — not a floating dot)
+  // + a soft animated radar-sweep ring around its base (visual life, not fake data)
+  var PinIcon=L.divIcon({
+    className:'map-pin',
+    html:'<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg">'
+      +'<defs><linearGradient id="pinGrad" x1="0" y1="0" x2="0" y2="1">'
+      +'<stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>'
+      +'<path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 25 15 25s15-14.5 15-25C30 6.7 23.3 0 15 0z" fill="url(#pinGrad)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>'
+      +'<circle cx="15" cy="15" r="6" fill="#0b1220"/><circle cx="15" cy="15" r="6" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1"/>'
+      +'</svg>',
+    iconSize:[30,40], iconAnchor:[15,40], popupAnchor:[0,-38],
+  });
+  var pin=L.marker([${lat},${lon}],{icon:PinIcon}).addTo(map);
   pin.bindPopup('<b>${lat.toFixed(2)}°, ${lon.toFixed(2)}°</b><br>Current Location',{className:'wx-pop'});
   var SweepIcon=L.divIcon({className:'',html:'<div class="sweep-wrap"><div class="sweep-ring"></div><div class="sweep-ring r2"></div><div class="sweep-ring r3"></div></div>',iconSize:[0,0]});
   L.marker([${lat},${lon}],{icon:SweepIcon,interactive:false,zIndexOffset:-10}).addTo(map);
@@ -186,7 +199,7 @@ export default function WeatherMap(){
           ))}
         </div>
 
-        <button onClick={()=>setFullscreen(f=>!f)} title={fullscreen?'Exit full screen':'Full screen'}
+        <button onClick={()=>setFullscreen(f=>!f)} title={fullscreen?'Exit full screen':'Full screen'} className="map-toolbar-icon-btn"
           style={{ display:'flex',alignItems:'center',justifyContent:'center',width:28,height:28,flexShrink:0,
             background:'var(--card2)',border:'1px solid var(--b1)',borderRadius:'var(--r1)',cursor:'pointer',color:'var(--t2)' }}>
           {fullscreen?<Minimize2 size={13}/>:<Maximize2 size={13}/>}
