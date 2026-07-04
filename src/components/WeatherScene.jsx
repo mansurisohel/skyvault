@@ -67,7 +67,7 @@ function Stars({ n = 85, dim = false }) {
 // a slightly different silhouette, and a lit top / shadowed underside for
 // a photographic, non-cartoon feel.
 function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,178,0.55)', w = 200, seed = 0 }) {
-  const h = w * 0.52;
+  const h = w * (164 / 260);
   const gid = `cg${Math.round(seed * 10000)}`;
   const fid = `cf${Math.round(seed * 10000)}`;
 
@@ -89,7 +89,7 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
   });
 
   return (
-    <svg width={w} height={h} viewBox="-15 -15 230 134" style={{ display: 'block' }}>
+    <svg width={w} height={h} viewBox="-30 -30 260 164" style={{ display: 'block' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"  stopColor={tint} />
@@ -97,13 +97,26 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
           <stop offset="100%" stopColor={shadeTint} />
         </linearGradient>
         {/* Distorts the smooth ellipse silhouette into an organic, non-geometric
-            fluffy edge — the single biggest lever for "realistic vs cartoonish". */}
-        <filter id={fid} x="-25%" y="-25%" width="150%" height="150%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.045" numOctaves="2" seed={Math.round(seed * 97)} result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="13" xChannelSelector="R" yChannelSelector="G" />
-          <feGaussianBlur stdDeviation="1.4" />
+            fluffy edge — low-frequency turbulence for gentle billowing (not
+            jagged noise), modest displacement, and a heavy blur so the
+            boundary reads as soft haze rather than a defined line. */}
+        <filter id={fid} x="-40%" y="-40%" width="180%" height="180%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.010 0.022" numOctaves="2" seed={Math.round(seed * 97)} result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+          <feGaussianBlur in="displaced" stdDeviation="3.4" />
+        </filter>
+        <filter id={`${fid}h`} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="7" />
         </filter>
       </defs>
+      {/* Soft outer halo — a heavier-blurred echo of the same shape sitting
+          behind the crisper body, feathering the boundary into the sky
+          rather than ending in even a fuzzy but defined line. */}
+      <g fill={tint} filter={`url(#${fid}h)`} opacity="0.55">
+        {puffs.map((p, i) => (
+          <ellipse key={`halo-${i}`} cx={p.cx} cy={p.cy} rx={p.rx * 1.08} ry={p.ry * 1.1} />
+        ))}
+      </g>
       <g fill={`url(#${gid})`} filter={`url(#${fid})`}>
         {puffs.map((p, i) => (
           <ellipse key={i} cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} />
