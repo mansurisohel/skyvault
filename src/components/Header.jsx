@@ -9,7 +9,7 @@ export default function Header() {
   return (
     <header style={{ position:'sticky', top:0, zIndex:50, backdropFilter:'blur(32px) saturate(1.8)', WebkitBackdropFilter:'blur(32px) saturate(1.8)', background:'var(--glass)', borderBottom:'1px solid var(--b1)' }}>
       <div className="hdr-wrap">
-        <div className="hdr-logo" style={{ display:'flex', alignItems:'center', gap:11, flexShrink:0 }}>
+        <div className="hdr-logo" style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
           <div className="hdr-logo-badge">
             <img src={logoIcon} alt="SkyVault" />
           </div>

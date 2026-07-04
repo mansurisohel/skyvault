@@ -25,11 +25,13 @@ export default async function handler(req, res) {
 
   try {
     const upstream = await fetch(
-      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&token=${key}`
+      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&apikey=${key}`
     );
 
     if (!upstream.ok) {
-      res.status(upstream.status).json({ articles: null, reason: `GNews responded ${upstream.status}` });
+      let detail = '';
+      try { detail = await upstream.text(); } catch { /* ignore */ }
+      res.status(upstream.status).json({ articles: null, reason: `GNews responded ${upstream.status}`, detail });
       return;
     }
 

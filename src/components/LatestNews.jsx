@@ -40,7 +40,7 @@ async function fetchGNews(city) {
   const key = import.meta.env.VITE_GNEWS_API_KEY;
   if (key) {
     try {
-      const res = await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&token=${key}`);
+      const res = await fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&apikey=${key}`);
       if (res.ok) {
         const d = await res.json();
         if (d.articles?.length) return mapArticles(d.articles);
