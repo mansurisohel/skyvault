@@ -565,10 +565,10 @@ body{
   .map-frame { height:clamp(240px,52vw,360px); }
 }
 @media(max-width:480px) {
-  .map-frame { height:280px; }
+  .map-frame { height:300px; }
 }
 @media(max-width:360px) {
-  .map-frame { height:240px; }
+  .map-frame { height:260px; }
 }
 
 /* ── Map full-screen takeover (mobile-friendly radar view) ── */
@@ -578,28 +578,66 @@ body{
 }
 .map-fullscreen .map-frame{ flex:1; height:auto !important; }
 
-/* ── Opacity slider — thumb sized up on touch so it's actually draggable ── */
-.opacity-slider{ -webkit-appearance:none; appearance:none; height:4px; border-radius:99px; background:var(--b2); outline:none; cursor:pointer; touch-action:none; }
-.opacity-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); box-shadow:0 1px 4px rgba(0,0,0,.4); cursor:pointer; }
-.opacity-slider::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:currentColor; border:2px solid var(--card); cursor:pointer; }
+/* ── Map toolbar buttons: proper touch targets on mobile (44px minimum tap
+   area per platform guidelines) ── */
+.map-layer-tabs button, .map-toolbar-btn { min-height:26px; }
 @media(max-width:768px){
-  .opacity-slider{ height:6px; }
-  .opacity-slider::-webkit-slider-thumb{ width:20px; height:20px; }
-  .opacity-slider::-moz-range-thumb{ width:20px; height:20px; }
-}
-
-/* ── Map toolbar: proper touch targets on mobile (44px minimum tap area per
-   platform guidelines — the original 26-28px buttons were too small) ── */
-@media(max-width:768px){
-  .map-layer-tabs button{ min-height:36px; padding:7px 12px !important; font-size:11.5px !important; }
+  .map-layer-tabs button, .map-toolbar-btn{ min-height:38px !important; padding:8px 13px !important; font-size:11.5px !important; }
   .map-toolbar-icon-btn{ width:38px !important; height:38px !important; }
 }
 @media(max-width:480px){
-  .map-layer-tabs button{ padding:6px 10px !important; font-size:10.5px !important; }
+  .map-layer-tabs button, .map-toolbar-btn{ padding:7px 11px !important; font-size:10.5px !important; }
 }
 @media(max-width:360px){
   .map-layer-tabs{ gap:4px !important; }
-  .map-layer-tabs button{ padding:5px 8px !important; font-size:10px !important; }
+  .map-layer-tabs button{ padding:6px 9px !important; font-size:10px !important; }
+}
+
+/* ── Radar ping ring (shown centered over the map while radar mode is live) ── */
+.radar-ping{
+  position:absolute; border-radius:50%; pointer-events:none;
+  border:2px solid rgba(248,113,113,.55); animation:radarPingGrow 1.8s ease-out infinite;
+}
+@keyframes radarPingGrow{ 0%{ transform:scale(.3); opacity:.9; } 100%{ transform:scale(2.6); opacity:0; } }
+
+/* ── Legend panel — shrinks and simplifies on small screens rather than
+   crowding out the map itself ── */
+.map-legend-panel{ max-width:min(200px,42vw); }
+@media(max-width:480px){
+  .map-legend-panel{ padding:7px 9px !important; min-width:0 !important; max-width:46vw; }
+  .map-legend-panel span{ font-size:9.5px !important; }
+}
+@media(max-width:360px){
+  .map-legend-panel{ max-width:50vw; bottom:6px !important; left:6px !important; }
+}
+
+/* ── Radar playback bar ── */
+.radar-bar{
+  display:flex; align-items:center; gap:10px; padding:9px 14px;
+  border-top:1px solid var(--b1); background:var(--card2); flex-wrap:wrap; rowGap:8px;
+}
+.radar-play-btn{
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:28px; height:28px; border-radius:50%; border:1px solid rgba(248,113,113,.4);
+  background:rgba(248,113,113,.14); color:#f87171; cursor:pointer; transition:all .2s var(--ease);
+}
+.radar-play-btn:hover{ background:rgba(248,113,113,.22); }
+.radar-frame-dot{
+  width:8px; height:8px; border-radius:50%; cursor:pointer; flex-shrink:0;
+  transition:all .2s var(--ease);
+}
+.radar-frame-dot.active{ width:10px; height:10px; box-shadow:0 0 8px rgba(248,113,113,.6); }
+@media(max-width:768px){
+  .radar-play-btn{ width:36px; height:36px; }
+  .radar-frame-dot{ width:12px; height:12px; }
+  .radar-frame-dot.active{ width:14px; height:14px; }
+}
+@media(max-width:480px){
+  .radar-bar{ padding:8px 12px; gap:8px; }
+  .radar-bar > span{ display:none; } /* hide the UTC time-range label — no room */
+}
+@media(max-width:360px){
+  .radar-bar > button:last-child{ font-size:9.5px !important; padding:2px 4px !important; }
 }
 
 /* ── Pill tabs on mobile ── */

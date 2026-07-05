@@ -129,7 +129,7 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
   );
 }
 
-function Clouds({ n = 7, light = false, dense = false, fast = false, storm = false, warm = false }) {
+function Clouds({ n = 7, light = false, dense = false, fast = false, storm = false, warm = false, rainy = false }) {
   const clouds = useMemo(() => Array.from({ length: n }, (_, i) => {
     const depth = R(i + 200);           // 0 = far/small/slow, 1 = near/big/fast
     const w = (dense ? 260 : 210) + depth * (dense ? 340 : 300);
@@ -137,14 +137,16 @@ function Clouds({ n = 7, light = false, dense = false, fast = false, storm = fal
     const baseDur = fast ? 10 : dense ? 48 : 32;
     const lit = storm
       ? { top: `rgba(${96 - depth * 20},${100 - depth * 20},${118 - depth * 16},0.92)`, shade: `rgba(${34 - depth * 10},${36 - depth * 10},${48 - depth * 8},0.85)` }
-      : dense
-        ? { top: `rgba(${210 - depth * 26},${216 - depth * 24},${226 - depth * 18},0.95)`, shade: `rgba(${142 - depth * 24},${150 - depth * 22},${164 - depth * 18},0.7)` }
-        : { top: `rgba(255,252,248,0.95)`, shade: `rgba(198,206,220,0.6)` };
+      : rainy
+        ? { top: `rgba(${150 - depth * 24},${158 - depth * 22},${172 - depth * 18},0.94)`, shade: `rgba(${78 - depth * 16},${86 - depth * 16},${102 - depth * 14},0.78)` }
+        : dense
+          ? { top: `rgba(${210 - depth * 26},${216 - depth * 24},${226 - depth * 18},0.95)`, shade: `rgba(${142 - depth * 24},${150 - depth * 22},${164 - depth * 18},0.7)` }
+          : { top: `rgba(255,252,248,0.95)`, shade: `rgba(198,206,220,0.6)` };
     const shade = warm ? `rgba(${196},${140},${118},0.5)` : lit.shade;
     return {
       top: `${2 + R(i) * (dense ? 40 : 48)}%`,
       w,
-      op: (baseOp + depth * 0.22) * (storm ? 1.15 : 1),
+      op: (baseOp + depth * 0.22) * (storm ? 1.15 : rainy ? 1.05 : 1),
       dur: `${baseDur - depth * (fast ? 4.5 : baseDur * 0.45)}s`,
       delay: `${R(i + 40) * -baseDur}s`,
       scale: 0.85 + depth * 0.75,
@@ -152,7 +154,7 @@ function Clouds({ n = 7, light = false, dense = false, fast = false, storm = fal
       tint: lit.top,
       shade,
     };
-  }), [n, light, dense, fast, storm, warm]);
+  }), [n, light, dense, fast, storm, warm, rainy]);
   return (
     <div className="particle-layer">
       {clouds.map((c, i) => (
@@ -354,16 +356,16 @@ const TIME_LAYERS = {
    Weather mood — the atmosphere/particle layer above the sky
 ──────────────────────────────────────────────────────────── */
 const MOOD_LAYERS = {
-  'sunny':        () => null,
+  'sunny':        () => <Clouds light n={2} />,
   'hot':          () => <SunOrb hot mood="strong" />,
   'cold':         () => <Clouds light n={3} />,
   'extreme-cold': () => <><Clouds light n={3} /><div className="frost-vignette" /></>,
   'cloudy':       () => <Clouds dense n={8} />,
   'partly':       () => <Clouds light n={5} />,
   'windy':        () => <><Clouds n={10} fast /><WindStreaks /></>,
-  'rain':         () => <><Clouds dense n={6} /><Rain /></>,
+  'rain':         () => <><Clouds dense rainy n={7} /><Rain /></>,
   'drizzle':      () => <><Clouds light n={5} /><Rain n={30} /></>,
-  'heavy-rain':   () => <><Clouds dense storm n={7} /><Rain n={90} fast /></>,
+  'heavy-rain':   () => <><Clouds dense rainy n={8} /><Rain n={90} fast /></>,
   'thunder':      () => <><Clouds dense storm n={7} /><Rain n={90} fast /><div className="lightning-el" /></>,
   'rain-sun':     () => <><Clouds light n={4} /><Rain n={26} /><SunOrb mood="soft" /></>,
   'snow':         () => <><Clouds light n={5} /><Snow /></>,
