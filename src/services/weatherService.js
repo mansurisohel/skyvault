@@ -3,9 +3,33 @@ const GEO_URL = 'https://api.openweathermap.org/geo/1.0';
 
 const getApiKey = () => import.meta.env.VITE_OPENWEATHER_API_KEY || '';
 
+// Every OWM call goes through this: a hard timeout (so a slow/hung request
+// can't leave stale data on screen indefinitely with no error shown) and
+// one automatic retry on transient network failures (mobile connections in
+// particular drop requests that succeed on a second attempt). Without this,
+// "the weather looks wrong" is sometimes really "the last successful fetch
+// was 20 minutes ago and silently never updated."
+async function fetchWithTimeout(url, { timeoutMs = 8000, retries = 1 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+  throw new Error(lastErr?.name === 'AbortError' ? 'Request timed out — check your connection.' : 'Network error — check your connection.');
+}
+
 export async function fetchCurrentWeather(city, units = 'metric') {
   const key = getApiKey();
-  const res = await fetch(`${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${key}&units=${units}`);
+  const res = await fetchWithTimeout(`${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${key}&units=${units}`);
   if (!res.ok) {
     if (res.status === 404) throw new Error(`City "${city}" not found.`);
     if (res.status === 401) throw new Error('Invalid API key. Check your .env file.');
@@ -16,37 +40,55 @@ export async function fetchCurrentWeather(city, units = 'metric') {
 
 export async function fetchForecast(city, units = 'metric') {
   const key = getApiKey();
-  const res = await fetch(`${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${key}&units=${units}&cnt=40`);
-  if (!res.ok) throw new Error('Failed to fetch forecast.');
+  const res = await fetchWithTimeout(`${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${key}&units=${units}&cnt=40`);
+  if (!res.ok) {
+    if (res.status === 404) throw new Error(`City "${city}" not found.`);
+    if (res.status === 401) throw new Error('Invalid API key. Check your .env file.');
+    throw new Error('Failed to fetch forecast.');
+  }
   return res.json();
 }
 
 export async function fetchWeatherByCoords(lat, lon, units = 'metric') {
   const key = getApiKey();
-  const res = await fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${key}&units=${units}`);
-  if (!res.ok) throw new Error('Failed to fetch weather by location.');
+  const res = await fetchWithTimeout(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${key}&units=${units}`);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Invalid API key. Check your .env file.');
+    throw new Error('Failed to fetch weather by location.');
+  }
   return res.json();
 }
 
 export async function fetchForecastByCoords(lat, lon, units = 'metric') {
   const key = getApiKey();
-  const res = await fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${key}&units=${units}&cnt=40`);
-  if (!res.ok) throw new Error('Failed to fetch forecast by location.');
+  const res = await fetchWithTimeout(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${key}&units=${units}&cnt=40`);
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Invalid API key. Check your .env file.');
+    throw new Error('Failed to fetch forecast by location.');
+  }
   return res.json();
 }
 
 export async function fetchAirQuality(lat, lon) {
   const key = getApiKey();
-  const res = await fetch(`${BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${key}`);
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetchWithTimeout(`${BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${key}`, { retries: 0 });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null; // air quality is a nice-to-have — never block the rest of the app on it
+  }
 }
 
 export async function searchCities(query) {
   const key = getApiKey();
-  const res = await fetch(`${GEO_URL}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${key}`);
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const res = await fetchWithTimeout(`${GEO_URL}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${key}`, { timeoutMs: 5000, retries: 0 });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
 }
 
 export function parseCurrentWeather(data) {
@@ -102,7 +144,12 @@ export function parseForecast(data, utcOffset = 0) {
     byDay[dayKey].push(item);
   });
 
-  const daily = Object.entries(byDay).slice(0, 7).map(([, items]) => {
+  // The free OWM /forecast endpoint returns 40 timestamps at 3-hour
+  // intervals — 5 days, occasionally with a partial 6th day at the
+  // boundary depending on what time the request lands. It can never
+  // actually produce 7 distinct days; capping here (and labeling the UI
+  // "5-Day Forecast") keeps the app honest about what the data backs up.
+  const daily = Object.entries(byDay).slice(0, 6).map(([, items]) => {
     const temps = items.map(i => i.main.temp);
     const noonItem = items.reduce((closest, item) => {
       const h = new Date((item.dt + utcOffset) * 1000).getUTCHours();

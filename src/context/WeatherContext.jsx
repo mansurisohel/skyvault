@@ -138,6 +138,26 @@ export function WeatherProvider({ children }) {
     }
   }, [units]); // eslint-disable-line
 
+  // Automatic background refresh every 10 minutes — OWM's own data updates
+  // on a similar cadence, and without this the app only ever re-fetches on
+  // a manual action, silently going stale the longer a tab stays open.
+  // Also re-syncs immediately when the tab regains focus/visibility after
+  // being backgrounded, since a laptop woken from sleep after hours away
+  // shouldn't keep showing whatever was last fetched.
+  useEffect(() => {
+    if (!weather?.city) return;
+    const interval = setInterval(() => { searchWeather(weather.city); }, 10 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') searchWeather(weather.city);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weather?.city]);
+
   return (
     <WeatherContext.Provider value={{
       weather, forecast, airQuality, loading, error,

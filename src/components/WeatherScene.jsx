@@ -66,44 +66,58 @@ function Stars({ n = 85, dim = false }) {
 // read as the same stamped icon repeated at different sizes — each one has
 // a slightly different silhouette, and a lit top / shadowed underside for
 // a photographic, non-cartoon feel.
-function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,178,0.55)', w = 200, seed = 0 }) {
+function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,178,0.55)', highTint, w = 200, seed = 0, flat = false }) {
   const h = w * (164 / 260);
   const gid = `cg${Math.round(seed * 10000)}`;
   const fid = `cf${Math.round(seed * 10000)}`;
+  const bright = highTint || tint;
 
-  // Procedurally place 9-12 puffs along a rough cloud silhouette, jittering
-  // position/size per-seed so each cloud instance is genuinely different.
-  const puffCount = 10;
+  // Main body: more puffs than before for a fuller, less "3-bump" silhouette.
+  const puffCount = 14;
   const puffs = Array.from({ length: puffCount }, (_, i) => {
-    const t = i / (puffCount - 1);                       // 0..1 across the cloud's width
-    const jitterX = (R(seed * 37 + i * 3.1) - 0.5) * 14;
-    const jitterY = (R(seed * 53 + i * 5.7) - 0.5) * 10;
-    const archY = Math.sin(t * Math.PI) * 30;             // taller in the middle
-    const baseR = 22 + R(seed * 19 + i * 2.3) * 20 + archY * 0.35;
+    const t = i / (puffCount - 1);
+    const jitterX = (R(seed * 37 + i * 3.1) - 0.5) * 12;
+    const jitterY = (R(seed * 53 + i * 5.7) - 0.5) * 9;
+    const archY = Math.sin(t * Math.PI) * 30;
+    const baseR = 18 + R(seed * 19 + i * 2.3) * 17 + archY * 0.34;
     return {
-      cx: 12 + t * 176 + jitterX,
+      cx: 8 + t * 184 + jitterX,
       cy: 74 - archY + jitterY,
-      rx: baseR * 1.35,
+      rx: baseR * 1.3,
       ry: baseR,
     };
+  });
+
+  // Detail bumps: smaller, riding along the upper silhouette — this is what
+  // reads as the characteristic cauliflower/cumulus texture in a real photo
+  // rather than a handful of smooth geometric blobs.
+  const detailCount = 12;
+  const details = Array.from({ length: detailCount }, (_, i) => {
+    const t = i / (detailCount - 1);
+    const archY = Math.sin(t * Math.PI) * 30;
+    const parentCx = 8 + t * 184;
+    const parentCy = 74 - archY;
+    const jx = (R(seed * 71 + i * 4.3) - 0.5) * 20;
+    const r = 7 + R(seed * 83 + i * 6.1) * 10;
+    return { cx: parentCx + jx, cy: parentCy - r * 0.6 + (R(seed * 91 + i) - 0.5) * 6, r };
   });
 
   return (
     <svg width={w} height={h} viewBox="-30 -30 260 164" style={{ display: 'block' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"  stopColor={tint} />
-          <stop offset="55%" stopColor={tint} />
+          <stop offset="0%"   stopColor={bright} />
+          <stop offset={flat ? '60%' : '38%'} stopColor={tint} />
+          <stop offset={flat ? '80%' : '68%'} stopColor={tint} />
           <stop offset="100%" stopColor={shadeTint} />
         </linearGradient>
-        {/* Distorts the smooth ellipse silhouette into an organic, non-geometric
-            fluffy edge — low-frequency turbulence for gentle billowing (not
-            jagged noise), modest displacement, and a heavy blur so the
-            boundary reads as soft haze rather than a defined line. */}
+        {/* Multi-octave turbulence gives detail at more than one scale — broad
+            rolling billows AND finer wisp texture — closer to how a real
+            cumulus cloud's edge actually reads, not a single smooth wobble. */}
         <filter id={fid} x="-40%" y="-40%" width="180%" height="180%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.010 0.022" numOctaves="2" seed={Math.round(seed * 97)} result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-          <feGaussianBlur in="displaced" stdDeviation="3.4" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.026" numOctaves="3" seed={Math.round(seed * 97)} result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+          <feGaussianBlur in="displaced" stdDeviation="2.8" />
         </filter>
         <filter id={`${fid}h`} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="7" />
@@ -121,6 +135,9 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
         {puffs.map((p, i) => (
           <ellipse key={i} cx={p.cx} cy={p.cy} rx={p.rx} ry={p.ry} />
         ))}
+        {details.map((d, i) => (
+          <circle key={`d${i}`} cx={d.cx} cy={d.cy} r={d.r} />
+        ))}
         <rect x="10" y="70" width="180" height="26" rx="13" />
       </g>
       {/* Soft underside shadow for grounding / volume */}
@@ -129,19 +146,21 @@ function CloudSVG({ tint = 'rgba(226,233,244,0.92)', shadeTint = 'rgba(150,160,1
   );
 }
 
-function Clouds({ n = 7, light = false, dense = false, fast = false, storm = false, warm = false, rainy = false }) {
+function Clouds({ n = 7, light = false, dense = false, fast = false, storm = false, warm = false, rainy = false, overcast = false }) {
   const clouds = useMemo(() => Array.from({ length: n }, (_, i) => {
     const depth = R(i + 200);           // 0 = far/small/slow, 1 = near/big/fast
     const w = (dense ? 260 : 210) + depth * (dense ? 340 : 300);
     const baseOp = light ? 0.32 : dense ? 0.64 : 0.48;
     const baseDur = fast ? 10 : dense ? 48 : 32;
     const lit = storm
-      ? { top: `rgba(${96 - depth * 20},${100 - depth * 20},${118 - depth * 16},0.92)`, shade: `rgba(${34 - depth * 10},${36 - depth * 10},${48 - depth * 8},0.85)` }
+      ? { top: `rgba(${96 - depth * 20},${100 - depth * 20},${118 - depth * 16},0.92)`, high: `rgba(${120 - depth * 18},${124 - depth * 18},${142 - depth * 14},0.9)`, shade: `rgba(${34 - depth * 10},${36 - depth * 10},${48 - depth * 8},0.85)` }
       : rainy
-        ? { top: `rgba(${150 - depth * 24},${158 - depth * 22},${172 - depth * 18},0.94)`, shade: `rgba(${78 - depth * 16},${86 - depth * 16},${102 - depth * 14},0.78)` }
-        : dense
-          ? { top: `rgba(${210 - depth * 26},${216 - depth * 24},${226 - depth * 18},0.95)`, shade: `rgba(${142 - depth * 24},${150 - depth * 22},${164 - depth * 18},0.7)` }
-          : { top: `rgba(255,252,248,0.95)`, shade: `rgba(198,206,220,0.6)` };
+        ? { top: `rgba(${150 - depth * 24},${158 - depth * 22},${172 - depth * 18},0.94)`, high: `rgba(${178 - depth * 20},${184 - depth * 18},${196 - depth * 16},0.94)`, shade: `rgba(${78 - depth * 16},${86 - depth * 16},${102 - depth * 14},0.78)` }
+        : overcast
+          ? { top: `rgba(${196 - depth * 20},${202 - depth * 18},${212 - depth * 16},0.95)`, high: `rgba(${212 - depth * 16},${217 - depth * 15},${225 - depth * 13},0.95)`, shade: `rgba(${158 - depth * 20},${164 - depth * 18},${176 - depth * 16},0.72)` }
+          : dense
+            ? { top: `rgba(${210 - depth * 26},${216 - depth * 24},${226 - depth * 18},0.95)`, high: `rgba(${232 - depth * 16},${236 - depth * 14},${242 - depth * 10},0.96)`, shade: `rgba(${142 - depth * 24},${150 - depth * 22},${164 - depth * 18},0.7)` }
+            : { top: `rgba(255,252,248,0.95)`, high: `rgba(255,255,252,0.98)`, shade: `rgba(198,206,220,0.6)` };
     const shade = warm ? `rgba(${196},${140},${118},0.5)` : lit.shade;
     return {
       top: `${2 + R(i) * (dense ? 40 : 48)}%`,
@@ -152,9 +171,10 @@ function Clouds({ n = 7, light = false, dense = false, fast = false, storm = fal
       scale: 0.85 + depth * 0.75,
       seed: i + 1,
       tint: lit.top,
+      highTint: lit.high,
       shade,
     };
-  }), [n, light, dense, fast, storm, warm, rainy]);
+  }), [n, light, dense, fast, storm, warm, rainy, overcast]);
   return (
     <div className="particle-layer">
       {clouds.map((c, i) => (
@@ -163,7 +183,7 @@ function Clouds({ n = 7, light = false, dense = false, fast = false, storm = fal
           animationDuration: c.dur, animationDelay: c.delay,
           '--cs': c.scale,
         }}>
-          <CloudSVG tint={c.tint} shadeTint={c.shade} w={c.w} seed={c.seed} />
+          <CloudSVG tint={c.tint} highTint={c.highTint} shadeTint={c.shade} w={c.w} seed={c.seed} flat={overcast} />
         </div>
       ))}
     </div>
@@ -303,6 +323,63 @@ function WindStreaks({ n = 10 }) {
   );
 }
 
+// Small leaves/debris blown horizontally across the screen with a bit of
+// tumble — reads as actual "wind moving things" rather than just faint
+// streak lines, which is easy to miss.
+function BlownDebris({ n = 14 }) {
+  const bits = useMemo(() => Array.from({ length: n }, (_, i) => ({
+    top:   `${4 + R(i) * 88}%`,
+    size:  4 + R(i + 10) * 6,
+    dur:   `${1.4 + R(i + 20) * 1.8}s`,
+    delay: `${R(i + 30) * -3}s`,
+    op:    0.35 + R(i + 40) * 0.4,
+    rotDur: `${0.4 + R(i + 50) * 0.5}s`,
+  })), [n]);
+  return (
+    <div className="particle-layer">
+      {bits.map((b, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: b.top, left: 0, width: b.size, height: b.size * 0.6,
+          background: 'rgba(210,195,160,0.75)', borderRadius: '40% 60% 50% 50%',
+          opacity: b.op, animation: `windBlow ${b.dur} linear infinite, debrisTumble ${b.rotDur} linear infinite`,
+          animationDelay: `${b.delay}, 0s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// A jagged lightning bolt that strikes at an unpredictable position with its
+// own flash timing — the old effect was only a flat full-screen color wash,
+// which reads as "the UI dimmed" rather than an actual lightning strike.
+function LightningBolt({ x = 50, delay = 0, dur = 6.5, flip = false }) {
+  const path = 'M50 0 L38 42 L54 42 L30 100 L46 52 L30 52 Z';
+  return (
+    <svg
+      width="70" height="220" viewBox="0 0 100 100" preserveAspectRatio="none"
+      style={{
+        position: 'absolute', top: '-4%', left: `${x}%`, opacity: 0,
+        transform: flip ? 'scaleX(-1)' : 'none',
+        animation: `boltFlash ${dur}s ease-in-out infinite`, animationDelay: `${delay}s`,
+        filter: 'drop-shadow(0 0 14px rgba(210,200,255,.85)) drop-shadow(0 0 30px rgba(180,170,255,.5))',
+      }}
+    >
+      <path d={path} fill="rgba(240,238,255,0.95)" />
+    </svg>
+  );
+}
+
+function Thunderstorm() {
+  return (
+    <>
+      <div className="lightning-el" />
+      <LightningBolt x={22} delay={0.4} dur={6.5} />
+      <LightningBolt x={68} delay={3.1} dur={8.2} flip />
+      <LightningBolt x={45} delay={5.6} dur={9.4} />
+    </>
+  );
+}
+
 function FallingBits({ n = 22, kind = 'leaf' }) {
   const palette = kind === 'leaf'
     ? ['#c2621f', '#d9822b', '#8a4a1c', '#e0a33a']
@@ -356,17 +433,17 @@ const TIME_LAYERS = {
    Weather mood — the atmosphere/particle layer above the sky
 ──────────────────────────────────────────────────────────── */
 const MOOD_LAYERS = {
-  'sunny':        () => <Clouds light n={2} />,
+  'sunny':        () => <Clouds light n={3} />,
   'hot':          () => <SunOrb hot mood="strong" />,
   'cold':         () => <Clouds light n={3} />,
   'extreme-cold': () => <><Clouds light n={3} /><div className="frost-vignette" /></>,
-  'cloudy':       () => <Clouds dense n={8} />,
+  'cloudy':       () => <Clouds overcast n={8} />,
   'partly':       () => <Clouds light n={5} />,
-  'windy':        () => <><Clouds n={10} fast /><WindStreaks /></>,
+  'windy':        () => <><Clouds n={10} fast /><WindStreaks /><BlownDebris /></>,
   'rain':         () => <><Clouds dense rainy n={7} /><Rain /></>,
   'drizzle':      () => <><Clouds light n={5} /><Rain n={30} /></>,
   'heavy-rain':   () => <><Clouds dense rainy n={8} /><Rain n={90} fast /></>,
-  'thunder':      () => <><Clouds dense storm n={7} /><Rain n={90} fast /><div className="lightning-el" /></>,
+  'thunder':      () => <><Clouds dense storm n={7} /><Rain n={90} fast /><Thunderstorm /></>,
   'rain-sun':     () => <><Clouds light n={4} /><Rain n={26} /><SunOrb mood="soft" /></>,
   'snow':         () => <><Clouds light n={5} /><Snow /></>,
   'blizzard':     () => <><Clouds dense storm n={6} fast /><Snow n={110} diagonal /><WindStreaks n={16} /></>,

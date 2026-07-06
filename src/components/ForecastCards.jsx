@@ -101,7 +101,7 @@ export function DailyForecast() {
 
   return (
     <div className="card fade-up d2 card-pad">
-      <span className="label">7-Day Forecast</span>
+      <span className="label">5-Day Forecast</span>
 
       <div className="fc-row" style={{ marginBottom: 14 }}>
         {forecast.daily.map((d, i) => {

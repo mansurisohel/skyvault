@@ -1,6 +1,7 @@
-import { AlertTriangle, CloudRain, Thermometer, Wind, Zap, Eye, Activity, MoonStar, Sun, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CloudRain, Thermometer, Wind, Zap, Eye, Activity, Sun, CheckCircle2 } from 'lucide-react';
 import { useWeather } from '../context/WeatherContext';
 import { getUVLabel, getAQILabel, getMoonPhase } from '../services/weatherService';
+import MoonPhaseIcon from './MoonPhaseIcon';
 
 export default function AlertsPanel() {
   const { weather, airQuality, uvIndex } = useWeather();
@@ -43,9 +44,9 @@ export default function AlertsPanel() {
         <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',gap:12 }}>
           <div style={{ minWidth:0 }}>
             <div style={{ fontSize:14,fontWeight:700,color:'var(--t1)',marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{moon.name}</div>
-            <div style={{ fontSize:11,color:'var(--t3)' }}>{moon.pct}% illuminated</div>
+            <div style={{ fontSize:11,color:'var(--t3)' }}>{moon.pct}% illuminated · Day {moon.age} of cycle</div>
           </div>
-          <MoonStar size={32} color="#c4b5fd" strokeWidth={1.4} style={{ flexShrink:0 }}/>
+          <MoonPhaseIcon angle={moon.angle} size={40} />
         </div>
         <div className="prog-track" style={{ marginTop:12 }}>
           <div className="prog-fill" style={{ width:`${moon.pct}%`,background:'linear-gradient(to right,#c4b5fd,#f9a8d4)' }}/>

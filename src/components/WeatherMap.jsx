@@ -99,9 +99,12 @@ html,body,#map{height:100%;width:100%;background:#07101e;font-family:Inter,syste
 .map-pin{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));animation:pinDrop .55s cubic-bezier(.34,1.56,.64,1) both;transform-origin:50% 100%}
 @keyframes pinDrop{0%{transform:translateY(-26px) scale(.4);opacity:0}60%{opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
 .map-pin:hover{cursor:pointer}
+.loc-ping{width:16px;height:16px;border-radius:50%;background:rgba(37,99,235,.35);border:2px solid rgba(59,130,246,.6);animation:locPing 2.2s ease-out infinite}
+@keyframes locPing{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.8);opacity:0}}
 /* Leaflet's bundled CSS puts a white box + gray border behind every divIcon
    by default — without this reset the pin renders inside that box instead
-   of as a clean, standalone marker. */
+   of as a clean, standalone marker. The ping ring also uses a divIcon, so
+   this reset covers both. */
 .leaflet-div-icon{background:transparent!important;border:none!important}
 </style>
 </head>
@@ -119,6 +122,22 @@ html,body,#map{height:100%;width:100%;background:#07101e;font-family:Inter,syste
     center: [LAT, LON], zoom: 7, zoomControl: true,
     preferCanvas: true, attributionControl: true,
   });
+
+  /* Leaflet computes its internal size from the container's dimensions at
+     the moment L.map() runs. Inside a dynamically-sized flex/clamp() layout
+     (this iframe's outer <div class="map-frame"> in the parent app), that
+     size isn't always settled yet on the very first paint — which doesn't
+     just misalign tiles (those self-correct as new ones load), it silently
+     mis-positions anything placed by lat/lng, including the location
+     marker, which then never moves again on its own. Re-checking size
+     shortly after load, and again on any future resize/orientation change,
+     is what actually fixes that rather than just re-styling the marker. */
+  setTimeout(function(){ map.invalidateSize(); }, 80);
+  setTimeout(function(){ map.invalidateSize(); }, 400);
+  window.addEventListener('resize', function(){ map.invalidateSize(); });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function(){ map.invalidateSize(); }).observe(document.getElementById('map'));
+  }
 
   var baseLayer = L.tileLayer(${JSON.stringify(base)}, {
     subdomains: 'abcd', maxZoom: 19,
@@ -150,17 +169,34 @@ html,body,#map{height:100%;width:100%;background:#07101e;font-family:Inter,syste
     }
   }
 
-  /* ── Location pin (a proper map pin, anchored at its tip) ── */
-  var PinIcon = L.divIcon({
-    className: 'map-pin',
-    html: '<svg width="34" height="46" viewBox="0 0 34 46" xmlns="http://www.w3.org/2000/svg">'
-      + '<path d="M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
-      + '<circle cx="17" cy="17" r="7.5" fill="#ffffff"/>'
-      + '</svg>',
+  /* ── Location pin (a proper map pin, anchored at its tip).
+     Using L.icon with a data-URI image rather than L.divIcon deliberately —
+     divIcon containers get a default white box + gray border from Leaflet's
+     own bundled CSS (.leaflet-div-icon), which then has to be fought with an
+     override that depends on stylesheet load order / cascade. A plain <img>
+     via L.icon never gets that treatment in the first place, so the pin
+     can't silently end up invisible or boxed in behind a stray background. */
+  var pinSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="46" viewBox="0 0 34 46">'
+    + '<path d="M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
+    + '<circle cx="17" cy="17" r="7.5" fill="#ffffff"/>'
+    + '</svg>';
+  var PinIcon = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,' + btoa(pinSvg),
     iconSize: [34, 46], iconAnchor: [17, 46], popupAnchor: [0, -42],
+    className: 'map-pin',
   });
-  var marker = L.marker([LAT, LON], { icon: PinIcon }).addTo(map);
+  var marker = L.marker([LAT, LON], { icon: PinIcon, zIndexOffset: 1000 }).addTo(map);
   marker.bindPopup('<b>Current Location</b><br>' + LAT.toFixed(3) + ', ' + LON.toFixed(3), { className: 'wx-pop' });
+
+  /* Pulsing "you are here" ring on the ground beneath the pin — makes the
+     location unmistakable even at a zoom level where the pin itself is
+     small, and gives a second independent visual confirmation that the
+     marker system is actually working. */
+  var PingIcon = L.divIcon({
+    className: '', html: '<div class="loc-ping"></div>',
+    iconSize: [16, 16], iconAnchor: [8, 8],
+  });
+  L.marker([LAT, LON], { icon: PingIcon, interactive: false, zIndexOffset: -100 }).addTo(map);
 
   /* ── Message listener ── */
   window.addEventListener('message', function(e) {
@@ -257,11 +293,26 @@ export default function WeatherMap() {
     } else {
       send({ type: 'SET_LAYER', key: activeLayer });
     }
+    // Nudge Leaflet to re-measure once the iframe itself has settled into
+    // its final layout size within the parent app (belt-and-braces on top
+    // of the iframe's own internal invalidateSize calls).
+    setTimeout(() => send({ type: 'RESIZE' }), 150);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Tell the iframe to re-measure whenever fullscreen flips */
+  /* Tell the iframe to re-measure whenever fullscreen flips, the window
+     resizes, or the device rotates — the map has to be told explicitly
+     since it lives inside an iframe and can't observe the parent layout. */
   useEffect(() => { send({ type: 'RESIZE' }); }, [fullscreen, send]);
+  useEffect(() => {
+    const onResize = () => send({ type: 'RESIZE' });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, [send]);
 
   useEffect(() => {
     if (!fullscreen) return;

@@ -8,17 +8,6 @@
 // route — LatestNews.jsx falls back to a direct client-side call using
 // VITE_GNEWS_API_KEY for local development, then to static curated content
 // if neither is available. See README.md for the full explanation.
-
-// Vercel serverless function — proxies GNews so the API key never ships in
-// the client bundle. Reads GNEWS_API_KEY (no VITE_ prefix: this runs on the
-// server, not in the browser, so it must be set as a plain env var in the
-// Vercel project settings, not baked in at build time).
-//
-// Frontend calls: /api/news?city=London
-// Local `npm run dev` (plain Vite, no serverless runtime) can't reach this
-// route — LatestNews.jsx falls back to a direct client-side call using
-// VITE_GNEWS_API_KEY for local development, then to static curated content
-// if neither is available. See README.md for the full explanation.
 //
 // IMPORTANT: the query is intentionally NOT city-specific. GNews's free tier
 // is 100 requests/day for the whole key, shared across every visitor to a
@@ -40,11 +29,21 @@ export default async function handler(req, res) {
     return;
   }
 
-  const q = 'weather forecast alert';
+  // A tightly-scoped weather query using GNews's documented phrase/OR
+  // operators — "weather forecast alert" as three bare words could match
+  // any article that happens to mention those terms individually, in any
+  // context; quoted phrases joined with OR keep it to genuinely
+  // weather-focused coverage.
+  const q = '"severe weather" OR "weather forecast" OR "storm warning" OR "weather alert" OR "extreme heat" OR "winter storm"';
+
+  // Only the last 3 days, sorted newest-first — GNews's archive goes back
+  // to 2020, and without both of these a "relevant" (but stale) match from
+  // months ago could easily outrank something published an hour ago.
+  const from = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
   try {
     const upstream = await fetch(
-      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&apikey=${key}`
+      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&sortby=publishedAt&from=${from}&apikey=${key}`
     );
 
     if (!upstream.ok) {
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
     // serving stale content for up to 6 hours while it revalidates in the
     // background. This is what keeps a single free-tier key viable on a
     // live public deployment regardless of how much traffic it gets.
-    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=21600');
+    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ articles: null, reason: 'Failed to reach GNews', detail: String(err) });

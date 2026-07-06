@@ -52,15 +52,15 @@ export default function FavoritesPanel() {
 function CityRow({ city, active, onSelect, onRemove }) {
   const [h, setH] = useState(false);
   return (
-    <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+    <div className="fav-row" onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 9px', borderRadius:'var(--r2)', cursor:'pointer',
         background: active ? 'var(--acc-d)' : h ? 'var(--card-h)' : 'transparent',
         border:`1px solid ${active ? 'var(--acc)' : 'transparent'}`, transition:'all .16s' }}>
       <MapPin size={11} color={active ? 'var(--acc)' : 'var(--t3)'} />
       <span onClick={onSelect} style={{ flex:1, fontSize:13, fontWeight:active?600:400, color:active?'var(--acc)':'var(--t2)' }}>{city}</span>
-      {onRemove && h && (
-        <button onClick={e => { e.stopPropagation(); onRemove(); }}
-          style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t3)', display:'flex', padding:2 }}>
+      {onRemove && (
+        <button onClick={e => { e.stopPropagation(); onRemove(); }} className="fav-remove-btn"
+          style={{ background:'none', border:'none', cursor:'pointer', color:'var(--t3)', display:'flex', padding:4 }}>
           <Trash2 size={11} />
         </button>
       )}
