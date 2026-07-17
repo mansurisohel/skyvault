@@ -1,768 +1,224 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap');
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* ═══════════════════════════════════════════
-   GLOBAL MOTION BASELINE
-   Every interactive element gets tactile press feedback and a default
-   transition so nothing in the app feels static or abrupt, even where a
-   component doesn't define its own animation.
-═══════════════════════════════════════════ */
-button,[role="button"]{ transition:transform .15s var(--spring),opacity .2s var(--ease); }
-button:active:not(:disabled),[role="button"]:active{ transform:scale(.96); }
-a{ transition:opacity .2s var(--ease),color .2s var(--ease); }
-::selection{ background:rgba(96,165,250,.35); color:#fff; }
-
-/* ═══════════════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════════════ */
-:root,[data-theme="dark"]{
-  --fd:'Manrope','SF Pro Display','Segoe UI',system-ui,sans-serif;
-  --fb:'Inter','SF Pro Text','Segoe UI',system-ui,-apple-system,sans-serif;
-
-  --r0:4px; --r1:8px; --r2:12px; --r3:18px; --r4:24px; --r5:32px; --r99:9999px;
-
-  --ease:cubic-bezier(.4,0,.2,1);
-  --spring:cubic-bezier(.34,1.56,.64,1);
-
-  /* Page */
-  --page:#080c18;
-  /* Cards */
-  --card:rgba(255,255,255,.058);
-  --card2:rgba(255,255,255,.092);
-  --card-h:rgba(255,255,255,.115);
-  /* Inputs — SOLID, not transparent */
-  --input-bg:#111827;
-  --input-border:rgba(255,255,255,.18);
-  --input-border-focus:#5b9cf6;
-  /* Borders */
-  --b1:rgba(255,255,255,.09);
-  --b2:rgba(255,255,255,.17);
-  /* Text */
-  --t1:#eef2ff;
-  --t2:rgba(238,242,255,.68);
-  --t3:rgba(238,242,255,.40);
-  /* Accent */
-  --acc:#5b9cf6;
-  --acc-d:rgba(91,156,246,.18);
-  --acc-g:rgba(91,156,246,.32);
-  /* Glass overlay */
-  --glass:rgba(8,12,24,.65);
-  --glass-b:rgba(255,255,255,.10);
-  /* Scrollbar */
-  --sb-t:rgba(255,255,255,.04);
-  --sb-h:rgba(255,255,255,.16);
-  /* Status */
-  --green:#4ade80;  --green-d:rgba(74,222,128,.16);
-  --yellow:#fbbf24; --yellow-d:rgba(251,191,36,.16);
-  --orange:#fb923c; --orange-d:rgba(251,146,60,.16);
-  --red:#f87171;    --red-d:rgba(248,113,113,.16);
-  --purple:#c084fc; --purple-d:rgba(192,132,252,.16);
-  --blue:#60a5fa;   --blue-d:rgba(96,165,250,.16);
-  --teal:#2dd4bf;   --teal-d:rgba(45,212,191,.16);
-  --pink:#f472b6;   --pink-d:rgba(244,114,182,.16);
-  --indigo:#818cf8; --indigo-d:rgba(129,140,248,.16);
-
-  /* Score system — used for activity suitability 0-100 */
-  --score-excellent:#34d399;
-  --score-good:#86efac;
-  --score-fair:#fbbf24;
-  --score-poor:#fb923c;
-  --score-bad:#f87171;
-}
-
-/* Single premium theme — dark/light toggle intentionally removed for
-   visual consistency across the whole product. */
-
-/* ═══════════════════════════════════════════
-   BASE
-═══════════════════════════════════════════ */
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{
-  font-family:var(--fb);color:var(--t1);background:var(--page);
-  min-height:100vh;overflow-x:hidden;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  transition:background .5s var(--ease),color .5s var(--ease);
-}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--sb-t)}
-::-webkit-scrollbar-thumb{background:var(--sb-h);border-radius:99px}
-
-/* ═══════════════════════════════════════════
-   GLASS CARDS
-═══════════════════════════════════════════ */
-.card{
-  background:linear-gradient(var(--amb-card,transparent),var(--amb-card,transparent)),var(--card);
-  border:1px solid var(--b1);
-  border-radius:var(--r4);
-  backdrop-filter:blur(24px) saturate(1.5);
-  -webkit-backdrop-filter:blur(24px) saturate(1.5);
-  transition:background .6s var(--ease),border-color .25s var(--ease);
-}
-.card-lift{
-  transition:background .25s var(--ease),border-color .25s var(--ease),
-             transform .22s var(--spring),box-shadow .22s var(--ease);
-}
-.card-lift:hover{transform:translateY(-3px);box-shadow:0 20px 48px rgba(0,0,0,.24);border-color:var(--b2);background:var(--card2)}
-
-/* ═══════════════════════════════════════════
-   SEARCH BOX — solid, elevated, always visible
-═══════════════════════════════════════════ */
-.search-box{
-  display:flex;align-items:center;gap:10px;
-  background:var(--input-bg);
-  border:1.5px solid var(--input-border);
-  border-radius:var(--r99);
-  padding:10px 16px;
-  box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 0 0 rgba(91,156,246,0);
-  transition:border-color .2s,box-shadow .2s;
-}
-.search-box:focus-within{
-  border-color:var(--input-border-focus);
-  box-shadow:0 2px 12px rgba(0,0,0,.25),0 0 0 3px rgba(91,156,246,.18);
-}
-.search-box input{
-  flex:1;background:none;border:none;outline:none;
-  color:var(--t1);font-size:14px;font-family:var(--fb);
-  min-width:0;
-}
-.search-box input::placeholder{color:var(--t3)}
-
-/* ═══════════════════════════════════════════
-   TYPOGRAPHY
-═══════════════════════════════════════════ */
-.label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:block}
-.label-sm{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3)}
-
-/* ═══════════════════════════════════════════
-   ANIMATIONS
-═══════════════════════════════════════════ */
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes scaleIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
-@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}65%{box-shadow:0 0 0 9px rgba(74,222,128,0)}}
-@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-/* Weather */
-@keyframes rainFall{0%{transform:translateY(-80px) scaleX(1);opacity:.7}100%{transform:translateY(105vh) scaleX(1);opacity:0}}
-@keyframes snowFall{0%{transform:translateY(-20px) rotate(0deg) translateX(0)}50%{transform:translateY(50vh) rotate(180deg) translateX(15px)}100%{transform:translateY(105vh) rotate(360deg) translateX(-10px)}}
-@keyframes dustDrift{0%{transform:translateX(-5%);opacity:0}10%{opacity:1}90%{opacity:.8}100%{transform:translateX(108%);opacity:0}}
-@keyframes cloudDrift{0%{transform:translateX(-22vw)}100%{transform:translateX(122vw)}}
-@keyframes cloudDriftSlow{
-  0%   { transform:translate(-30vw,0)    scale(var(--cs,1)); }
-  25%  { transform:translate(20vw,-8px)  scale(var(--cs,1)); }
-  50%  { transform:translate(70vw,0)     scale(var(--cs,1)); }
-  75%  { transform:translate(100vw,7px)  scale(var(--cs,1)); }
-  100% { transform:translate(130vw,0)    scale(var(--cs,1)); }
-}
-@keyframes starBlink{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
-@keyframes sunFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.04)}}
-@keyframes sunRay{0%,100%{opacity:.25;transform:rotate(0deg)}50%{opacity:.55;transform:rotate(180deg)}}
-@keyframes heatWave{0%,100%{transform:scaleY(1);opacity:.18}50%{transform:scaleY(1.08);opacity:.35}}
-@keyframes moonGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(255,240,180,.3))}50%{filter:drop-shadow(0 0 24px rgba(255,240,180,.65))}}
-@keyframes lightning{0%,84%,87%,89%,92%,100%{opacity:0}85%,91%{opacity:.85}88%{opacity:.3}}
-@keyframes mistFloat{0%{transform:translateX(0)}100%{transform:translateX(100px)}}
-@keyframes horizonGlow{0%,100%{opacity:.5}50%{opacity:.95}}
-@keyframes bgFade{from{opacity:0}to{opacity:1}}
-@keyframes birdFly{0%{opacity:0;transform:translate(-6vw,0) scale(1)}8%{opacity:.5}50%{transform:translate(50vw,-3.5vh) scale(1.05)}92%{opacity:.45}100%{opacity:0;transform:translate(106vw,-1vh) scale(1)}}
-@keyframes windDrift{0%{transform:translateX(-10%) scaleX(.6);opacity:0}12%{opacity:.6}88%{opacity:.4}100%{transform:translateX(115%) scaleX(1.3);opacity:0}}
-@keyframes windBlow{0%{transform:translateX(-8vw) translateY(0)}50%{transform:translateX(55vw) translateY(-14px)}100%{transform:translateX(112vw) translateY(6px)}}
-@keyframes debrisTumble{0%{rotate:0deg}100%{rotate:360deg}}
-@keyframes boltFlash{
-  0%,100%{opacity:0}
-  1%{opacity:.95} 2%{opacity:.15} 3%{opacity:.85} 5%{opacity:0}
-  6%{opacity:.6} 7%{opacity:0}
-}
-@keyframes leafFall{0%{transform:translateY(-6vh) translateX(0) rotate(0deg);opacity:0}8%{opacity:.85}92%{opacity:.7}100%{transform:translateY(108vh) translateX(70px) rotate(340deg);opacity:0}}
-@keyframes rainbowIn{from{opacity:0;transform:scale(.94) translateY(6px)}to{opacity:.55;transform:scale(1) translateY(0)}}
-@keyframes heatShimmerMove{0%,100%{transform:translateY(0) scaleY(1);opacity:.7}50%{transform:translateY(-6px) scaleY(1.06);opacity:1}}
-@keyframes swayEl{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
-
-.fade-up{animation:fadeUp .5s var(--ease) both}
-.fade-in{animation:fadeIn .4s var(--ease) both}
-.scale-in{animation:scaleIn .4s var(--spring) both}
-.d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}
-.d4{animation-delay:.16s}.d5{animation-delay:.20s}.d6{animation-delay:.24s}
-.d7{animation-delay:.28s}.d8{animation-delay:.32s}
-
-/* ═══════════════════════════════════════════
-   LIVE DOT & SPINNER
-═══════════════════════════════════════════ */
-.live-dot{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;animation:glowPulse 2s ease infinite;flex-shrink:0}
-.spinner{width:36px;height:36px;border:2.5px solid var(--b1);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite}
-
-/* ═══════════════════════════════════════════
-   WEATHER SCENE — full-screen animated bg
-═══════════════════════════════════════════ */
-.wx-scene{
-  position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;overflow:hidden;
-  animation:bgFade 1.6s ease both;
-}
-.particle-layer{position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;pointer-events:none}
-
-/* ── Legibility scrim: sits between the sky (z-index 0) and the UI content
-   (z-index 2). Because the time-of-day skies are now genuinely bright and
-   saturated, this keeps text/card contrast consistent without having to
-   darken the sky itself back down to "always looks like night" territory. */
-.wx-scrim{
-  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1; pointer-events:none;
-  background:linear-gradient(180deg,rgba(3,6,14,.28) 0%,rgba(3,6,14,.42) 38%,rgba(3,6,14,.54) 100%);
-}
-
-/* ── Ambient wash: a soft, full-viewport tint driven by --amb-wash (set from
-   getAmbientTheme). This is what makes sunny days read as warm/bright and
-   rain/cloud read as cool/muted at the UI level, not just in the scene
-   illustration behind everything. Transitions smoothly whenever the
-   underlying weather condition or time-of-day bucket changes. */
-.wx-ambient-wash{
-  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1; pointer-events:none;
-  background:var(--amb-wash,transparent);
-  transition:background 1.4s var(--ease);
-}
-
-/* ── Weather mood overlays: layered ON TOP of the time-of-day sky. Bolder
-   and more saturated than a subtle tint so switching conditions reads as an
-   obvious change, not a barely-there variation. ── */
-.wx-sunny        {background:radial-gradient(ellipse 80% 55% at 20% 10%,rgba(255,206,60,.22) 0%,transparent 60%)}
-.wx-hot          {background:radial-gradient(ellipse 80% 55% at 25% 10%,rgba(255,110,10,.30) 0%,transparent 58%)}
-.wx-cold         {background:radial-gradient(ellipse at 50% 0%,rgba(150,210,255,.18) 0%,transparent 65%)}
-.wx-extreme-cold {background:radial-gradient(ellipse at 50% 0%,rgba(170,220,255,.26) 0%,transparent 65%)}
-.wx-cloudy       {background:radial-gradient(ellipse at 50% -5%,rgba(30,38,52,.72) 0%,rgba(30,38,52,.40) 48%,transparent 78%)}
-.wx-partly       {background:radial-gradient(ellipse 70% 50% at 25% 8%,rgba(255,190,50,.16) 0%,transparent 55%),radial-gradient(ellipse at 68% 0%,rgba(30,38,52,.34) 0%,transparent 55%)}
-.wx-windy        {background:radial-gradient(ellipse at 50% 0%,rgba(120,180,200,.16) 0%,transparent 62%)}
-.wx-rain         {background:radial-gradient(ellipse at 30% -5%,rgba(4,12,26,.68) 0%,transparent 68%)}
-.wx-drizzle      {background:radial-gradient(ellipse at 40% 0%,rgba(4,12,26,.42) 0%,transparent 62%)}
-.wx-heavy-rain   {background:radial-gradient(ellipse at 30% -5%,rgba(1,4,10,.82) 0%,transparent 72%)}
-.wx-thunder      {background:radial-gradient(ellipse at 50% -5%,rgba(24,8,44,.76) 0%,transparent 74%)}
-.wx-rain-sun     {background:radial-gradient(ellipse 70% 55% at 22% 8%,rgba(255,206,60,.22) 0%,transparent 55%),radial-gradient(ellipse at 58% 22%,rgba(4,12,26,.38) 0%,transparent 62%)}
-.wx-snow         {background:radial-gradient(ellipse at 50% -5%,rgba(190,220,255,.24) 0%,transparent 68%)}
-.wx-blizzard     {background:radial-gradient(ellipse at 50% -5%,rgba(200,225,255,.32) 0%,transparent 66%)}
-.wx-fog          {background:radial-gradient(ellipse at 50% 25%,rgba(150,165,180,.36) 0%,transparent 68%)}
-.wx-dust         {background:radial-gradient(ellipse at 50% 25%,rgba(190,130,20,.34) 0%,transparent 68%)}
-.wx-rainbow      {background:radial-gradient(ellipse 80% 55% at 25% 8%,rgba(255,214,70,.22) 0%,transparent 58%)}
-.wx-night        {background:transparent}
-/* Time-of-day base skies — layered by WeatherScene as the underlay.
-   Each bucket has a genuinely different brightness/hue so the app doesn't
-   read as "always night": afternoon is a vivid, saturated blue; sunrise
-   and sunset are dramatic warm gradients; only night/midnight are dark. */
-.wx-time-sunrise {background:
-  radial-gradient(ellipse 75% 45% at 50% 100%,rgba(255,170,110,.55) 0%,transparent 68%),
-  radial-gradient(ellipse 55% 35% at 22% 88%,rgba(255,120,120,.35) 0%,transparent 62%),
-  linear-gradient(180deg,#131c3e 0%,#3a2c58 38%,#8a4a5a 68%,#dd8552 100%);
-}
-.wx-time-morning {background:
-  radial-gradient(ellipse 70% 45% at 20% 12%,rgba(255,205,130,.30) 0%,transparent 58%),
-  linear-gradient(160deg,#123a63 0%,#1e5490 55%,#3777ae 100%);
-}
-.wx-time-afternoon {background:
-  radial-gradient(ellipse 75% 50% at 24% 6%,rgba(255,220,150,.24) 0%,transparent 58%),
-  linear-gradient(165deg,#0f4a86 0%,#1c6bb0 52%,#3f92d6 100%);
-}
-.wx-time-sunset {background:
-  radial-gradient(ellipse 80% 50% at 80% 92%,rgba(255,130,60,.55) 0%,transparent 62%),
-  radial-gradient(ellipse 55% 40% at 12% 96%,rgba(190,50,120,.32) 0%,transparent 58%),
-  linear-gradient(180deg,#100c26 0%,#3d1f4a 42%,#a3405a 72%,#e8823f 100%);
-}
-.wx-time-night {background:
-  radial-gradient(ellipse at 70% 15%,rgba(90,75,210,.16) 0%,transparent 60%),
-  radial-gradient(ellipse at 18% 80%,rgba(65,45,175,.10) 0%,transparent 60%),
-  linear-gradient(150deg,#040814 0%,#0a1330 55%,#040814 100%);
-}
-.wx-time-midnight {background:
-  radial-gradient(ellipse at 50% 10%,rgba(45,50,120,.10) 0%,transparent 62%),
-  linear-gradient(150deg,#010204 0%,#04070f 70%,#010204 100%);
-}
-
-/* ── Seasonal accent wash, layered lightly over the weather sky ── */
-.wx-season-spring{background:radial-gradient(ellipse at 30% 100%,rgba(255,150,190,.05) 0%,transparent 55%)}
-.wx-season-summer{background:radial-gradient(ellipse at 30% 0%,rgba(255,200,60,.04) 0%,transparent 55%)}
-.wx-season-autumn{background:radial-gradient(ellipse at 30% 100%,rgba(230,130,40,.06) 0%,transparent 55%)}
-.wx-season-winter{background:radial-gradient(ellipse at 30% 0%,rgba(140,190,255,.05) 0%,transparent 55%)}
-
-/* ── Particle elements ── */
-.rain-drop{position:absolute;top:-80px;border-radius:99px;background:linear-gradient(to bottom,transparent,rgba(140,195,255,.55));animation:rainFall linear infinite}
-.snow-flake{position:absolute;top:-20px;border-radius:50%;background:rgba(220,240,255,.84);animation:snowFall linear infinite}
-.dust-streak{position:absolute;height:1.5px;border-radius:99px;background:rgba(200,148,58,.40);animation:dustDrift linear infinite}
-.cloud-shape{position:absolute;animation:cloudDriftSlow linear infinite;will-change:transform}
-.star-dot{position:absolute;border-radius:50%;background:#fff;animation:starBlink ease-in-out infinite}
-.moon-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,246,200,.60) 0%,rgba(220,200,130,.20) 60%,transparent 80%);animation:moonGlow 4s ease-in-out infinite}
-.sun-orb{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,222,80,.70) 0%,rgba(255,180,0,.28) 50%,transparent 70%);animation:sunFloat 6.5s ease-in-out infinite}
-.sun-ray-el{position:absolute;transform-origin:0 0;animation:sunRay 10s linear infinite}
-.heat-el{position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(to top,rgba(255,120,0,.08),transparent);filter:blur(6px);animation:heatWave 3.5s ease-in-out infinite}
-.mist-band{position:absolute;left:-20%;right:-20%;border-radius:50%;filter:blur(22px);animation:mistFloat linear infinite alternate}
-.lightning-el{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(195,178,255,.14);animation:lightning 7s ease-in-out infinite;pointer-events:none}
-.horizon-el{position:absolute;bottom:0;left:0;right:0;pointer-events:none;animation:horizonGlow 4.5s ease-in-out infinite}
-
-/* Bird silhouettes drifting across sunrise/morning skies */
-.bird-el{position:absolute;opacity:0;animation:birdFly linear infinite}
-.bird-el svg{display:block}
-
-/* Wind streak + swaying elements for "windy" scenes */
-.wind-streak{position:absolute;height:1px;border-radius:99px;background:linear-gradient(90deg,transparent,rgba(200,230,255,.28),transparent);animation:windDrift linear infinite}
-
-/* Falling leaves (autumn) / petals (spring) */
-.leaf-el,.petal-el{position:absolute;top:-24px;border-radius:2px 10px 2px 10px;animation:leafFall linear infinite}
-.petal-el{border-radius:50% 50% 50% 0}
-
-/* Rainbow arc (clear-after-rain) */
-.rainbow-arc{position:absolute;border-radius:50%;border-style:solid;border-color:transparent;pointer-events:none;opacity:0;animation:rainbowIn 2.4s ease .3s forwards}
-
-/* Frost vignette for extreme cold */
-.frost-vignette{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(200,230,255,.10) 100%);
-  box-shadow:inset 0 0 90px rgba(210,235,255,.14),inset 0 0 220px rgba(180,215,255,.08);
-}
-
-/* Heat shimmer distortion band for heatwaves */
-.heat-shimmer{position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;
-  background:linear-gradient(to top,rgba(255,140,20,.05),transparent);
-  animation:heatShimmerMove 2.6s ease-in-out infinite;filter:blur(1px);
-}
-
-/* ═══════════════════════════════════════════
-   PILLS / TABS
-═══════════════════════════════════════════ */
-.pill-tabs{display:flex;gap:3px;background:rgba(255,255,255,.07);padding:3px;border-radius:var(--r99);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-.pill-tabs::-webkit-scrollbar{display:none}
-.pill-tab{padding:5px 13px;border-radius:var(--r99);border:none;cursor:pointer;font-family:var(--fb);font-size:11px;font-weight:600;color:var(--t3);background:transparent;transition:all .2s var(--ease);white-space:nowrap;flex-shrink:0}
-.pill-tab.on{background:var(--card2);color:var(--t1);box-shadow:0 2px 8px rgba(0,0,0,.22)}
-
-/* ═══════════════════════════════════════════
-   SCROLL ROW
-═══════════════════════════════════════════ */
-.scroll-x{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;scrollbar-color:var(--sb-h) transparent}
-.scroll-x::-webkit-scrollbar{height:3px}
-.scroll-x::-webkit-scrollbar-thumb{background:var(--sb-h);border-radius:99px}
-
-/* ═══════════════════════════════════════════
-   PROGRESS BAR
-═══════════════════════════════════════════ */
-.prog-track{height:4px;background:var(--b1);border-radius:99px;overflow:hidden}
-.prog-fill{height:100%;border-radius:99px;transition:width .9s var(--ease)}
-
-/* ═══════════════════════════════════════════
-   STAT BADGE
-═══════════════════════════════════════════ */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r99);font-size:10px;font-weight:700;letter-spacing:.05em}
-
-/* ═══════════════════════════════════════════
-   SCORE RING — 0-100 activity suitability
-═══════════════════════════════════════════ */
-.score-ring-svg{transform:rotate(-90deg)}
-.score-ring-track{fill:none;stroke-width:4}
-.score-ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s var(--spring)}
-.score-num{font-family:var(--fd);font-weight:700;transition:color .3s}
-
-/* ═══════════════════════════════════════════
-   RESPONSIVE LAYOUT
-═══════════════════════════════════════════ */
-.dash-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
-.main-col{display:flex;flex-direction:column;gap:14px;min-width:0}
-.side-col{display:flex;flex-direction:column;gap:14px}
-
-/* Wide desktop: sidebar grows a touch and we allow two-up rows in main col */
-@media(min-width:1280px){
-  .dash-grid{grid-template-columns:1fr 320px}
-}
-
-/* Card-row: place two cards side-by-side instead of stacked full-width.
-   Falls back to stacked below 860px so nothing gets cramped. */
-.card-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-@media(max-width:860px){
-  .card-row{grid-template-columns:1fr}
-}
-
-/* Tablet */
-@media(max-width:1000px){
-  .dash-grid{grid-template-columns:1fr}
-  .side-col{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-}
-/* Mobile */
-@media(max-width:640px){
-  .dash-grid{gap:12px}
-  .side-col{grid-template-columns:1fr;gap:12px}
-  .card{border-radius:var(--r3)}
-  .pill-tabs{gap:2px}
-  .pill-tab{padding:5px 10px;font-size:10.5px}
-}
-@media(max-width:480px){
-  .card{border-radius:var(--r2)}
-}
-
-/* ═══════════════════════════════════════════
-   SKELETON
-═══════════════════════════════════════════ */
-.skeleton{background:linear-gradient(90deg,var(--b1) 25%,var(--card-h) 50%,var(--b1) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:var(--r1)}
-
-/* ═══════════════════════════════════════════
-   MOBILE HEADER
-═══════════════════════════════════════════ */
-/* ── Brand mark: the actual logo shown as-is (no boxed backdrop that
-   doesn't exist in the source artwork), enlarged, with an ambient glow. ── */
-.hdr-logo-badge{
-  width:46px; height:46px; flex-shrink:0; position:relative;
-  display:flex; align-items:center; justify-content:center;
-}
-.hdr-logo-badge::before{
-  content:''; position:absolute; top:-7px; left:-7px; right:-7px; bottom:-7px; z-index:-1; border-radius:50%;
-  background:radial-gradient(circle,rgba(96,165,250,.38) 0%,rgba(96,165,250,0) 70%);
-  filter:blur(5px); animation:badgeGlowPulse 3.6s ease-in-out infinite;
-}
-@keyframes badgeGlowPulse{ 0%,100%{ opacity:.65; transform:scale(1); } 50%{ opacity:1; transform:scale(1.08); } }
-.hdr-logo-badge img{
-  width:100%; height:100%; object-fit:contain;
-  filter:drop-shadow(0 3px 12px rgba(59,130,246,.45));
-  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
-}
-.hdr-logo-badge:hover img{ transform:scale(1.08) rotate(-8deg); }
-.hdr-wordmark{ font-family:var(--fd); font-weight:800; font-size:21px; letter-spacing:-.02em; white-space:nowrap; line-height:1; }
-.hdr-wordmark .sky{ background:linear-gradient(135deg,#7dd3fc,#38bdf8); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.hdr-wordmark .vault{ color:var(--t1); }
-@media(max-width:600px){ .hdr-logo-badge{ width:38px; height:38px; } .hdr-wordmark{ font-size:17px; } }
-@media(max-width:340px){ .hdr-wordmark{ display:none; } }
-
-/* ── Shine sweep: a light streak that glides across an element on a loop.
-   Used on the welcome-screen hero logo and primary CTA for a premium,
-   "just polished" feel without being distracting elsewhere. ── */
-.logo-shine-wrap{ position:relative; display:inline-block; overflow:hidden; border-radius:20px; }
-.logo-shine-wrap::after{
-  content:''; position:absolute; top:-60%; left:-60%; width:38%; height:220%;
-  background:linear-gradient(120deg,transparent,rgba(255,255,255,.6),transparent);
-  transform:rotate(18deg); animation:logoShine 3.6s ease-in-out infinite;
-}
-@keyframes logoShine{ 0%,40%{ left:-60%; } 100%{ left:140%; } }
-
-.cta-shine{ position:relative; overflow:hidden; }
-.cta-shine::after{
-  content:''; position:absolute; top:0; left:-60%; width:32%; height:100%;
-  background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);
-  transform:skewX(-18deg); animation:ctaShine 3.8s ease-in-out infinite;
-}
-@keyframes ctaShine{ 0%,55%{ left:-60%; } 100%{ left:140%; } }
-
-.sparkle{ position:absolute; pointer-events:none; animation:sparkleTwinkle ease-in-out infinite; }
-@keyframes sparkleTwinkle{ 0%,100%{ opacity:0; transform:scale(.3) rotate(0deg); } 45%,55%{ opacity:1; transform:scale(1) rotate(50deg); } }
-
-.hero-glow-blob{ position:absolute; border-radius:50%; filter:blur(50px); pointer-events:none; animation:heroGlowFloat ease-in-out infinite; }
-@keyframes heroGlowFloat{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(14px,-18px) scale(1.08); } }
-
-.hdr-wrap{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:11px 16px;flex-wrap:wrap}
-
-.hdr-search{flex:1 1 200px;min-width:0}
-@media(max-width:600px){
-  .hdr-wrap{padding:8px 12px;gap:8px}
-  .hdr-search{order:3;flex:1 1 100%}
-  .hdr-logo{flex:1}
-}
-
-/* ═══════════════════════════════════════════
-   RECHARTS
-═══════════════════════════════════════════ */
-.recharts-cartesian-axis-tick-value{fill:var(--t3)!important;font-size:10px!important;font-family:var(--fb)!important}
-.recharts-tooltip-wrapper{z-index:10!important}
-
-/* ═══════════════════════════════════════════
-   EXTRA RESPONSIVE POLISH
-═══════════════════════════════════════════ */
-
-/* Hero card temp number on very small screens */
-@media(max-width:380px){
-  .card{border-radius:var(--r2);padding:14px!important}
-}
-
-/* Metrics grid: 2 columns on narrow mobile */
-@media(max-width:480px){
-  /* Force 2-col on tiny screens for metric tiles */
-}
-
-/* Forecast scroll strip */
-@media(max-width:480px){
-  .scroll-x > div{min-width:44px!important}
-}
-
-/* ═══════════════════════════════════════════
-   COMPREHENSIVE RESPONSIVE RULES
-═══════════════════════════════════════════ */
-
-/* ── Shared card padding ── */
-.card-pad { padding: clamp(14px,3.5vw,24px); }
-
-/* ── Metrics grid: 3 cols tablet, 2 cols mobile ── */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 9px;
-}
-@media(max-width:640px) {
-  .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-}
-@media(max-width:360px) {
-  .metrics-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Lifestyle grid: auto-fill so it fills available width instead of
-   always sitting at a fixed 3 columns on wide screens ── */
-.lifestyle-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  gap: 9px;
-}
-@media(max-width:640px) {
-  .lifestyle-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-}
-@media(max-width:360px) {
-  .lifestyle-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── AI recs grid ── */
-.ai-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
-}
-@media(max-width:480px) {
-  .ai-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Forecast header ── */
-.forecast-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
-@media(max-width:400px) {
-  .forecast-header { flex-direction:column; align-items:flex-start; }
-}
-
-/* ── Current weather card: stack on mobile ── */
-.wx-card-inner { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap; }
-.wx-card-right { display:flex; flex-direction:column; align-items:flex-end; gap:14px; flex-shrink:0; }
-@media(max-width:540px) {
-  .wx-card-inner { flex-direction:column; }
-  .wx-card-right { align-items:flex-start; width:100%; }
-  .wx-stat-grid  { grid-template-columns: repeat(2, 1fr) !important; width:100%; }
-  .wx-sun-row    { justify-content:flex-start !important; }
-}
-
-/* ── Stat grid ── */
-.wx-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-
-/* ── Sun row ── */
-.wx-sun-row { display:flex; gap:22px; }
-
-/* ── Header action buttons: show on mobile too ── */
-.wx-action-btns { display:flex; gap:7px; }
-
-/* ── Search dropdown: never overflow viewport ── */
-.search-drop {
-  position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:300;
-  background:var(--input-bg); border:1.5px solid var(--b2);
-  border-radius:var(--r3); overflow:hidden;
-  box-shadow:0 24px 64px rgba(0,0,0,.36),0 8px 24px rgba(0,0,0,.24);
-  max-height:60vh; overflow-y:auto;
-}
-
-/* ── News section (LatestNews.jsx — do not modify the component, hook stays) ── */
-.news-featured { border-radius:var(--r3); overflow:hidden; }
-.news-img { height:160px; }
-@media(max-width:480px) {
-  .news-img { height:120px; }
-}
-
-/* ── Favorites/recent row remove button: hidden until hover only on
-   devices that actually support hovering (mouse/trackpad). Touch screens
-   don't have a persistent hover state, so hiding it there would make the
-   remove action permanently unreachable rather than just less visible. */
-@media (hover: hover) and (pointer: fine) {
-  .fav-remove-btn{ opacity:0; transition:opacity .15s var(--ease); }
-  .fav-row:hover .fav-remove-btn{ opacity:1; }
-}
-@media (hover: none), (pointer: coarse) {
-  .fav-remove-btn{ opacity:.55; }
-}
-.map-frame { height:clamp(260px,42vw,440px); }
-@media(max-width:768px) {
-  .map-frame { height:clamp(240px,52vw,360px); }
-}
-@media(max-width:480px) {
-  .map-frame { height:300px; }
-}
-@media(max-width:360px) {
-  .map-frame { height:260px; }
-}
-
-/* ── Map full-screen takeover (mobile-friendly radar view) ── */
-.map-fullscreen{
-  position:fixed; top:0;left:0;right:0;bottom:0; z-index:1000; border-radius:0 !important;
-  display:flex; flex-direction:column; height:100vh; height:100dvh;
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette — derived from the SkyVault compass/gauge mark.
+     Single dark theme by design: the animated weather backgrounds already
+     provide the "light vs dark" contrast the app needs, condition by condition. */
+  --color-abyss: #050914;
+  --color-midnight: #0b1224;
+  --color-midnight-2: #101a33;
+  --color-dusk: #16213f;
+  --color-sky-300: #a9c9ff;
+  --color-sky-400: #7fabff;
+  --color-sky-500: #5b8def;
+  --color-sky-600: #3f6bd1;
+  --color-amber-400: #f7b955;
+  --color-amber-500: #f5a623;
+  --color-violet-400: #9a8cf5;
+  --color-violet-500: #7c6cf0;
+  --color-mist-50: #f6f9ff;
+  --color-mist-100: #e9f1ff;
+  --color-mist-200: #cdddf7;
+  --color-slate-300: #aebbdb;
+  --color-slate-400: #9aa8c7;
+  --color-slate-500: #7987a8;
+  --color-slate-600: #4d5b78;
+
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-glass: 0 8px 32px rgba(5, 9, 20, 0.45);
+  --shadow-glass-sm: 0 4px 16px rgba(5, 9, 20, 0.3);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  /* Offsets in-page anchor jumps so section headings clear the sticky nav */
+  section[id] {
+    scroll-margin-top: 92px;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: var(--color-midnight);
+    color: var(--color-mist-100);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    line-height: 1.55;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--color-mist-50);
+    text-shadow: 0 2px 16px rgba(2, 5, 12, 0.35);
+  }
+
+  p {
+    color: var(--color-slate-300);
+  }
+
+  /* Browsers default <button> to an arrow cursor, not a pointer (only <a>
+     gets that for free) — without this, every button in the app looks
+     non-interactive on hover. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-sky-400);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-slate-600);
+    border-radius: 999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}
+
+@layer components {
+  .glass {
+    background: color-mix(in srgb, var(--color-midnight-2) 74%, transparent);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid color-mix(in srgb, white 10%, transparent);
+    box-shadow: var(--shadow-glass);
+  }
+
+  .glass-panel {
+    border-radius: 1.5rem;
+    background: color-mix(in srgb, var(--color-midnight-2) 74%, transparent);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid color-mix(in srgb, white 10%, transparent);
+    box-shadow: var(--shadow-glass);
+  }
+
+  .data-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .section-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-sky-300);
+    text-shadow: 0 1px 12px rgba(2, 5, 12, 0.4);
+  }
+
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-14px) translateX(6px); }
+}
+@keyframes float-slower {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-8px) translateX(-10px); }
+}
+@keyframes drift {
+  0% { transform: translate(-12%, 0); }
+  20% { transform: translate(12%, -7px); }
+  40% { transform: translate(36%, 3px); }
+  60% { transform: translate(60%, -4px); }
+  80% { transform: translate(84%, 5px); }
+  100% { transform: translate(112%, 0); }
+}
+@keyframes wind-streak {
+  from { transform: translateX(-30vw) rotate(-8deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  to { transform: translateX(130vw) rotate(-8deg); opacity: 0; }
+}
+@keyframes rain-fall {
+  from { transform: translate(0, -10%); opacity: 0; }
+  10% { opacity: 1; }
+  to { transform: translate(-18px, 110vh); opacity: 0.3; }
+}
+@keyframes snow-fall {
+  0% { transform: translate(0, -5%); }
+  25% { transform: translate(14px, 22vh); }
+  50% { transform: translate(-10px, 50vh); }
+  75% { transform: translate(18px, 78vh); }
+  100% { transform: translate(0, 105vh); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+@keyframes lightning-flash {
+  0%, 92%, 100% { opacity: 0; }
+  93%, 95% { opacity: 0.9; }
+  94% { opacity: 0.3; }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+@keyframes map-ping {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+.animate-float-slower { animation: float-slower 12s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
+.animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Leaflet's bundled CSS puts a white box + gray border behind every
+   divIcon by default — without this reset, custom markers (our pin, the
+   location-ping ring) render inside that box instead of as clean,
+   standalone graphics. */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(11, 18, 36, 0.85) !important;
+  color: var(--color-slate-400) !important;
+  font-size: 10px !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-control-attribution a {
+  color: var(--color-slate-300) !important;
 }
-.map-fullscreen .map-frame{ flex:1; height:auto !important; }
-
-/* ── Map toolbar buttons: proper touch targets on mobile (44px minimum tap
-   area per platform guidelines) ── */
-.map-layer-tabs button, .map-toolbar-btn { min-height:26px; }
-@media(max-width:768px){
-  .map-layer-tabs button, .map-toolbar-btn{ min-height:38px !important; padding:8px 13px !important; font-size:11.5px !important; }
-  .map-toolbar-icon-btn{ width:38px !important; height:38px !important; }
-}
-@media(max-width:480px){
-  .map-layer-tabs button, .map-toolbar-btn{ padding:7px 11px !important; font-size:10.5px !important; }
-}
-@media(max-width:360px){
-  .map-layer-tabs{ gap:4px !important; }
-  .map-layer-tabs button{ padding:6px 9px !important; font-size:10px !important; }
-}
-
-/* ── Radar ping ring (shown centered over the map while radar mode is live) ── */
-.radar-ping{
-  position:absolute; border-radius:50%; pointer-events:none;
-  border:2px solid rgba(248,113,113,.55); animation:radarPingGrow 1.8s ease-out infinite;
-}
-@keyframes radarPingGrow{ 0%{ transform:scale(.3); opacity:.9; } 100%{ transform:scale(2.6); opacity:0; } }
-
-/* ── Legend panel — shrinks and simplifies on small screens rather than
-   crowding out the map itself ── */
-.map-legend-panel{ max-width:min(200px,42vw); }
-@media(max-width:480px){
-  .map-legend-panel{ padding:7px 9px !important; min-width:0 !important; max-width:46vw; }
-  .map-legend-panel span{ font-size:9.5px !important; }
-}
-@media(max-width:360px){
-  .map-legend-panel{ max-width:50vw; bottom:6px !important; left:6px !important; }
-}
-
-/* ── Radar playback bar ── */
-.radar-bar{
-  display:flex; align-items:center; gap:10px; padding:9px 14px;
-  border-top:1px solid var(--b1); background:var(--card2); flex-wrap:wrap; rowGap:8px;
-}
-.radar-play-btn{
-  display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  width:28px; height:28px; border-radius:50%; border:1px solid rgba(248,113,113,.4);
-  background:rgba(248,113,113,.14); color:#f87171; cursor:pointer; transition:all .2s var(--ease);
-}
-.radar-play-btn:hover{ background:rgba(248,113,113,.22); }
-.radar-frame-dot{
-  width:8px; height:8px; border-radius:50%; cursor:pointer; flex-shrink:0;
-  transition:all .2s var(--ease);
-}
-.radar-frame-dot.active{ width:10px; height:10px; box-shadow:0 0 8px rgba(248,113,113,.6); }
-@media(max-width:768px){
-  .radar-play-btn{ width:36px; height:36px; }
-  .radar-frame-dot{ width:12px; height:12px; }
-  .radar-frame-dot.active{ width:14px; height:14px; }
-}
-@media(max-width:480px){
-  .radar-bar{ padding:8px 12px; gap:8px; }
-  .radar-bar > span{ display:none; } /* hide the UTC time-range label — no room */
-}
-@media(max-width:360px){
-  .radar-bar > button:last-child{ font-size:9.5px !important; padding:2px 4px !important; }
-}
-
-/* ── Pill tabs on mobile ── */
-@media(max-width:400px) {
-  .pill-tab { padding:5px 8px; font-size:10px; }
-}
-
-/* ═══════════════════════════════════════════
-   FORECAST — horizontal scrolling cards
-═══════════════════════════════════════════ */
-
-/* Shared scroll-snap row used by both hourly and daily forecast */
-.fc-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  padding: 2px 2px 8px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sb-h) transparent;
-  -webkit-overflow-scrolling: touch;
-}
-.fc-row::-webkit-scrollbar { height: 4px; }
-.fc-row::-webkit-scrollbar-thumb { background: var(--sb-h); border-radius: 99px; }
-
-/* Hourly card */
-.fc-hour-card {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-  width: 84px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 8px 14px;
-  border-radius: var(--r3);
-  background: var(--card2);
-  border: 1px solid var(--b1);
-  transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--spring);
-}
-.fc-hour-card.now {
-  border-color: var(--acc);
-  background: var(--acc-d);
-}
-.fc-hour-card:hover { transform: translateY(-2px); border-color: var(--b2); }
-@media(max-width:480px) {
-  .fc-hour-card { width: 72px; padding: 10px 6px 12px; }
-}
-
-/* Daily card — richer than the old single-line row */
-.fc-day-card {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-  width: 132px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 10px 16px;
-  border-radius: var(--r3);
-  background: var(--card2);
-  border: 1px solid var(--b1);
-  transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--spring);
-  cursor: pointer;
-}
-.fc-day-card.today { border-color: var(--acc); background: var(--acc-d); }
-.fc-day-card.selected {
-  border-color: var(--teal);
-  background: var(--card-h);
-  box-shadow: 0 8px 24px rgba(0,0,0,.18), inset 0 0 0 1px rgba(45,212,191,.25);
-}
-.fc-day-card:hover { transform: translateY(-2px); }
-@media(max-width:480px) {
-  .fc-day-card { width: 112px; padding: 12px 8px 14px; }
-}
-@media(max-width:360px) {
-  .fc-day-card { width: 100px; }
-}
-
-/* Mini range bar inside the daily card */
-.fc-range-track { width: 100%; height: 3px; background: var(--b1); border-radius: 99px; overflow: hidden; position: relative; }
-.fc-range-fill { position: absolute; height: 100%; border-radius: 99px; background: linear-gradient(to right,#60a5fa,#f97316); }
-
-/* Detail panel shown below the daily strip for the selected day */
-.fc-detail-panel {
-  margin-top: 4px;
-  padding-top: 14px;
-  border-top: 1px solid var(--b1);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 10px;
-}
-@media(max-width:480px) {
-  .fc-detail-panel { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── DayRow: compact mode (legacy hook kept for safety, unused by new layout) ── */
-.day-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r2); transition:background .18s; }
-@media(max-width:360px) {
-  .day-row { gap:6px; padding:7px 6px; }
-}
-
-/* ── Index bars: tag + val wrap on tiny ── */
-.index-bar-header { display:flex; justify-content:space-between; margin-bottom:5px; }
-@media(max-width:360px) {
-  .index-bar-header { flex-direction:column; gap:3px; }
-}
-
-/* ── Prevent body horizontal scroll ── */
-body { overflow-x:hidden; }
-* { box-sizing:border-box; }
-img { max-width:100%; }

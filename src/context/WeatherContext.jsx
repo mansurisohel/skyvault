@@ -1,179 +1,193 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import {
-  fetchCurrentWeather,
-  fetchForecast,
-  fetchWeatherByCoords,
-  fetchForecastByCoords,
-  fetchAirQuality,
-  parseCurrentWeather,
-  parseForecast,
-  getWeatherScene,
-  getTimeBucket,
-  getSeason,
-  getUVIndex,
-  generateAIRecommendations,
-} from '../services/weatherService';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { fetchWeatherSnapshot } from '@/services/weatherService';
+import { reverseGeocode } from '@/services/geocodingService';
+import { STORAGE_KEYS, DEFAULT_LOCATION } from '@/constants';
 
 const WeatherContext = createContext(null);
 
-export function WeatherProvider({ children }) {
-  const [weather, setWeather] = useState(null);
-  const [forecast, setForecast] = useState(null);
-  const [airQuality, setAirQuality] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [units, setUnits] = useState(() => localStorage.getItem('wx_units') || 'metric');
-  const [scene, setScene] = useState('sunny');
-  const [timeBucket, setTimeBucket] = useState(() => getTimeBucket(new Date().getHours()));
-  const [season, setSeason] = useState(() => getSeason(20, new Date()));
-  const [favorites, setFavorites] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('wx_favorites') || '[]'); } catch { return []; }
-  });
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('wx_recent') || '[]'); } catch { return []; }
-  });
-  const [aiRecs, setAiRecs] = useState([]);
-  const [uvIndex, setUvIndex] = useState(null);
-
-  useEffect(() => {
-    localStorage.setItem('wx_units', units);
-  }, [units]);
-
-  useEffect(() => {
-    localStorage.setItem('wx_favorites', JSON.stringify(favorites));
-  }, [favorites]);
-
-  useEffect(() => {
-    localStorage.setItem('wx_recent', JSON.stringify(recentSearches));
-  }, [recentSearches]);
-
-  const processWeatherData = useCallback((currentData, forecastData, aqData) => {
-    const parsed = parseCurrentWeather(currentData);
-    const parsedForecast = parseForecast(forecastData, parsed.utcOffset);
-
-    const localHour = parsed.localTime.getUTCHours();
-    const uv = getUVIndex(parsed.lat, parsed.clouds, localHour);
-    const enriched = { ...parsed, uvIndex: uv };
-
-    const aqi = aqData?.list?.[0]?.main?.aqi || null;
-    const recs = generateAIRecommendations(enriched, aqi);
-
-    setWeather(enriched);
-    setForecast(parsedForecast);
-    setAirQuality(aqData?.list?.[0] || null);
-    setUvIndex(uv);
-    setAiRecs(recs);
-    setScene(getWeatherScene(enriched));
-    setTimeBucket(getTimeBucket(localHour));
-    setSeason(getSeason(parsed.lat, parsed.localTime));
-  }, []);
-
-  const searchWeather = useCallback(async (city) => {
-    if (!city?.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [currentData, forecastData] = await Promise.all([
-        fetchCurrentWeather(city, units),
-        fetchForecast(city, units),
-      ]);
-      const aqData = await fetchAirQuality(currentData.coord.lat, currentData.coord.lon).catch(() => null);
-      processWeatherData(currentData, forecastData, aqData);
-
-      setRecentSearches(prev => {
-        const filtered = prev.filter(s => s.toLowerCase() !== city.toLowerCase());
-        return [city, ...filtered].slice(0, 8);
-      });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [units, processWeatherData]);
-
-  const detectLocation = useCallback(async () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const position = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
-      );
-      const { latitude: lat, longitude: lon } = position.coords;
-      const [currentData, forecastData] = await Promise.all([
-        fetchWeatherByCoords(lat, lon, units),
-        fetchForecastByCoords(lat, lon, units),
-      ]);
-      const aqData = await fetchAirQuality(lat, lon).catch(() => null);
-      processWeatherData(currentData, forecastData, aqData);
-    } catch (err) {
-      setError(err.code === 1 ? 'Location access denied. Please search manually.' : 'Could not detect location.');
-    } finally {
-      setLoading(false);
-    }
-  }, [units, processWeatherData]);
-
-  const refreshWeather = useCallback(async () => {
-    if (!weather) return;
-    await searchWeather(weather.city);
-  }, [weather, searchWeather]);
-
-  const toggleFavorite = useCallback((city) => {
-    setFavorites(prev =>
-      prev.includes(city) ? prev.filter(f => f !== city) : [...prev, city]
-    );
-  }, []);
-
-  const toggleUnits = useCallback(() => {
-    setUnits(prev => prev === 'metric' ? 'imperial' : 'metric');
-  }, []);
-
-  // Re-fetch when units change and we have a city
-  useEffect(() => {
-    if (weather?.city) {
-      searchWeather(weather.city);
-    }
-  }, [units]); // eslint-disable-line
-
-  // Automatic background refresh every 10 minutes — OWM's own data updates
-  // on a similar cadence, and without this the app only ever re-fetches on
-  // a manual action, silently going stale the longer a tab stays open.
-  // Also re-syncs immediately when the tab regains focus/visibility after
-  // being backgrounded, since a laptop woken from sleep after hours away
-  // shouldn't keep showing whatever was last fetched.
-  useEffect(() => {
-    if (!weather?.city) return;
-    const interval = setInterval(() => { searchWeather(weather.city); }, 10 * 60 * 1000);
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') searchWeather(weather.city);
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weather?.city]);
-
-  return (
-    <WeatherContext.Provider value={{
-      weather, forecast, airQuality, loading, error,
-      units, scene, timeBucket, season, favorites, recentSearches,
-      aiRecs, uvIndex,
-      searchWeather, detectLocation, refreshWeather,
-      toggleFavorite, toggleUnits,
-      setError,
-    }}>
-      {children}
-    </WeatherContext.Provider>
-  );
+function readHasStoredLocation() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(STORAGE_KEYS.LAST_LOCATION) !== null;
+  } catch {
+    return true;
+  }
 }
 
-export const useWeather = () => {
+export function WeatherProvider({ children }) {
+  const [unit, setUnit] = useLocalStorage(STORAGE_KEYS.UNIT, 'metric');
+  const [favorites, setFavorites] = useLocalStorage(STORAGE_KEYS.FAVORITES, []);
+  const [history, setHistory] = useLocalStorage(STORAGE_KEYS.HISTORY, []);
+  const [lastLocation, setLastLocation] = useLocalStorage(STORAGE_KEYS.LAST_LOCATION, DEFAULT_LOCATION);
+
+  const [location, setLocation] = useState(lastLocation);
+  const [snapshot, setSnapshot] = useState(null);
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [error, setError] = useState(null);
+  const [locating, setLocating] = useState(false);
+  // On a visitor's very first session (nothing saved yet), quietly try to use
+  // their real position before fetching anything, so the app opens already
+  // matching their actual location, time, and day/night state.
+  const [initializing, setInitializing] = useState(() => !readHasStoredLocation());
+  const autoAttempted = useRef(false);
+
+  const loadWeather = useCallback(async (loc, { silent = false } = {}) => {
+    if (!loc) return;
+    if (!silent) setStatus('loading');
+    setError(null);
+    try {
+      const data = await fetchWeatherSnapshot({ lat: loc.lat, lon: loc.lon, name: loc.name, units: unit });
+      setSnapshot(data);
+      setStatus('success');
+    } catch (err) {
+      setError(err.message || 'Unable to load weather data.');
+      setStatus('error');
+    }
+  }, [unit]);
+
+  const selectLocation = useCallback((loc) => {
+    setLocation(loc);
+    setLastLocation(loc);
+    setHistory((prev) => {
+      const filtered = prev.filter((h) => !(h.lat === loc.lat && h.lon === loc.lon));
+      return [loc, ...filtered].slice(0, 8);
+    });
+  }, [setLastLocation, setHistory]);
+
+  const useCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.');
+      setStatus('error');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const place = await reverseGeocode(latitude, longitude);
+        setLocating(false);
+        selectLocation({ ...place, lat: latitude, lon: longitude });
+      },
+      () => {
+        setLocating(false);
+        setError('Location access was denied. Search for a city instead.');
+        setStatus('error');
+      },
+      { timeout: 10000 },
+    );
+  }, [selectLocation]);
+
+  const toggleFavorite = useCallback((loc) => {
+    setFavorites((prev) => {
+      const exists = prev.some((f) => f.lat === loc.lat && f.lon === loc.lon);
+      if (exists) return prev.filter((f) => !(f.lat === loc.lat && f.lon === loc.lon));
+      return [...prev, loc];
+    });
+  }, [setFavorites]);
+
+  const isFavorite = useCallback(
+    (loc) => favorites.some((f) => f.lat === loc?.lat && f.lon === loc?.lon),
+    [favorites],
+  );
+
+  const clearHistory = useCallback(() => setHistory([]), [setHistory]);
+
+  const refresh = useCallback(() => loadWeather(location, { silent: true }), [loadWeather, location]);
+
+  // Silent, first-visit-only geolocation attempt. Falls back to the default
+  // city without any error banner if permission is denied or unsupported —
+  // this is a quiet convenience, not an explicit user action.
+  useEffect(() => {
+    if (!initializing || autoAttempted.current) return;
+    autoAttempted.current = true;
+
+    if (!navigator.geolocation) {
+      setInitializing(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setInitializing(false), 7000);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        window.clearTimeout(timeoutId);
+        const { latitude, longitude } = pos.coords;
+        try {
+          const place = await reverseGeocode(latitude, longitude);
+          selectLocation({ ...place, lat: latitude, lon: longitude });
+        } finally {
+          setInitializing(false);
+        }
+      },
+      () => {
+        window.clearTimeout(timeoutId);
+        setInitializing(false);
+      },
+      { timeout: 6500 },
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initializing, selectLocation]);
+
+  useEffect(() => {
+    if (initializing) return;
+    loadWeather(location);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, unit, initializing]);
+
+  // Keeps data from silently going stale the longer a tab stays open: a
+  // background refresh every 10 minutes (OpenWeather's own update cadence),
+  // plus an immediate refresh when the tab regains focus/visibility — a
+  // laptop woken from sleep hours later shouldn't keep showing old data,
+  // which is exactly the kind of mismatch that makes the app feel wrong.
+  useEffect(() => {
+    if (initializing || !location) return undefined;
+
+    const interval = window.setInterval(() => {
+      loadWeather(location, { silent: true });
+    }, 10 * 60 * 1000);
+
+    function onVisible() {
+      if (document.visibilityState === 'visible') {
+        loadWeather(location, { silent: true });
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [initializing, location, loadWeather]);
+
+  const value = useMemo(
+    () => ({
+      unit,
+      setUnit,
+      location,
+      snapshot,
+      status: initializing ? 'loading' : status,
+      error,
+      locating,
+      favorites,
+      history,
+      selectLocation,
+      useCurrentLocation,
+      toggleFavorite,
+      isFavorite,
+      clearHistory,
+      refresh,
+    }),
+    [unit, location, snapshot, status, error, locating, favorites, history, initializing,
+      selectLocation, useCurrentLocation, toggleFavorite, isFavorite, clearHistory, refresh, setUnit],
+  );
+
+  return <WeatherContext.Provider value={value}>{children}</WeatherContext.Provider>;
+}
+
+export function useWeatherContext() {
   const ctx = useContext(WeatherContext);
-  if (!ctx) throw new Error('useWeather must be used inside WeatherProvider');
+  if (!ctx) throw new Error('useWeatherContext must be used within WeatherProvider');
   return ctx;
-};
+}
