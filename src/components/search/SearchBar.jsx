@@ -92,7 +92,6 @@ export default function SearchBar({ variant = 'compact', onSelect }) {
           <Search size={hero ? 18 : 15} />
         </span>
         <input
-          id={hero ? 'hero-search-input' : undefined}
           type="text"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); setActiveIndex(-1); }}

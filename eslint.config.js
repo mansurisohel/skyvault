@@ -36,5 +36,14 @@ export default [
       'react-hooks/immutability': 'warn',
     },
   },
+  {
+    // Build/tooling config files run under Node, not the browser — they
+    // need Node globals (process, __dirname via import.meta, etc.) rather
+    // than the browser globals used for application source.
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
   prettier,
 ];

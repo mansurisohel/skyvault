@@ -35,6 +35,7 @@ export function buildInterpolatedTimeline(points, { stepSeconds = 7200, count = 
       feels_like: lerp(a.feels_like, b.feels_like),
       wind_speed: lerp(a.wind_speed, b.wind_speed),
       humidity: Math.round(lerp(a.humidity, b.humidity)),
+      pressure: Math.round(lerp(a.pressure ?? 1013, b.pressure ?? 1013)),
       pop: Math.max(a.pop, b.pop),
       weather: nearest.weather,
       isReal: t === a.dt,

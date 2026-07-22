@@ -2,7 +2,7 @@ import { Trash2, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
 import { useWeatherContext } from '@/context/WeatherContext';
 import { Card } from '@/components/common/Primitives';
 import SectionHeading from '@/components/common/SectionHeading';
-import { OPENWEATHER_API_KEY, GNEWS_API_KEY } from '@/constants';
+import { OPENWEATHER_API_KEY, GNEWS_API_KEY, NEWSDATA_API_KEY } from '@/constants';
 import { locationLabel } from '@/utils/format';
 
 function Toggle({ options, value, onChange }) {
@@ -85,10 +85,21 @@ export default function PreferencesSection() {
             <span className="text-slate-400">GNews (weather news)</span>
             {GNEWS_API_KEY
               ? <span className="flex items-center gap-1.5 text-sky-300"><CheckCircle2 size={15} /> Connected</span>
-              : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set — demo articles</span>}
+              : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set</span>}
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className="text-slate-400">NewsData.io (weather news)</span>
+            {NEWSDATA_API_KEY
+              ? <span className="flex items-center gap-1.5 text-sky-300"><CheckCircle2 size={15} /> Connected</span>
+              : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set</span>}
+          </div>
+          {!GNEWS_API_KEY && !NEWSDATA_API_KEY && (
+            <p className="text-xs text-amber-300/80">
+              No news provider configured — the News section shows generated insights from live conditions instead.
+            </p>
+          )}
           <p className="text-xs text-slate-500">
-            Add keys to your <code className="data-mono">.env</code> file as <code className="data-mono">VITE_OPENWEATHER_API_KEY</code> and <code className="data-mono">VITE_GNEWS_API_KEY</code>, then restart the dev server.
+            Add keys to your <code className="data-mono">.env</code> file as <code className="data-mono">OPENWEATHER_API_KEY</code>, <code className="data-mono">GNEWS_API_KEY</code>, and/or <code className="data-mono">NEWSDATA_API_KEY</code>, then restart the dev server.
           </p>
         </Card>
       </div>

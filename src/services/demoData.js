@@ -107,6 +107,7 @@ export function buildDemoWeather(lat, lon, name = 'Demo City', units = 'metric')
       pop: Math.round(rand() * 100) / 100,
       wind_speed: Math.round(rand() * 25 * 10) / 10,
       humidity: Math.round(40 + rand() * 50),
+      pressure: Math.round(1008 + Math.sin(i / 6) * 6 + rand() * 3),
       weather: [{ ...c, icon: `${c.icon}${night ? 'n' : 'd'}` }],
     };
   });

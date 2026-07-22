@@ -40,11 +40,4 @@ export const UV_LEVELS = [
   { max: Infinity, label: 'Extreme', color: '#9a52e0' },
 ];
 
-export const NAV_LINKS = [
-  { to: '#overview', label: 'Overview' },
-  { to: '#forecast', label: 'Forecast' },
-  { to: '#health', label: 'Health & Moon' },
-  { to: '#map', label: 'Map' },
-  { to: '#news', label: 'News' },
-  { to: '#favorites', label: 'Favorites' },
-];
+

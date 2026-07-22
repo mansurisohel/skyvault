@@ -45,9 +45,9 @@ export default function CurrentWeatherCard() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass-panel relative overflow-hidden p-6 md:p-10"
+      className="glass-panel overflow-hidden p-6 md:p-10"
     >
-      <div className="absolute right-5 top-5 flex items-center gap-1">
+      <div className="mb-3 flex items-center justify-end gap-1">
         <button
           type="button"
           onClick={handleRefresh}

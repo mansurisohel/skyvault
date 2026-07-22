@@ -36,7 +36,7 @@ export default function Home() {
       {/* Overview: hero search + current conditions */}
       <section id="overview" className="scroll-mt-24">
         <motion.div {...fadeIn()} className="relative mx-auto mb-8 max-w-2xl text-center">
-          <div className="absolute -inset-x-4 -inset-y-3 -z-10 rounded-3xl backdrop-blur-[2px] sm:-inset-x-8" aria-hidden="true" />
+          <div className="absolute -inset-x-4 -inset-y-3 -z-10 rounded-3xl bg-abyss/35 backdrop-blur-[2px] sm:-inset-x-8" aria-hidden="true" />
           <p className="section-eyebrow mb-2">SkyVault Weather Data</p>
           <h1 className="font-display text-3xl font-semibold text-mist-50 sm:text-4xl">
             Precise, beautiful weather for wherever you are
@@ -78,7 +78,7 @@ export default function Home() {
             title="Forecast & trends"
             description="Several days out, plus temperature, rain, wind, and pressure trends."
           />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <WeeklyForecast />
             </div>

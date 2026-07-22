@@ -108,6 +108,7 @@ function normalizeHourly(list, units) {
     pop: item.pop ?? 0,
     wind_speed: normalizeWindSpeed(item.wind?.speed ?? 0, units),
     humidity: item.main.humidity,
+    pressure: item.main.pressure,
     weather: item.weather,
   }));
 }

@@ -43,12 +43,12 @@ async function fetchFromGNews(location) {
 }
 
 async function fetchFromNewsData(location) {
+  const q = `"${location.name}" AND (weather OR storm OR flood OR heatwave OR forecast)`;
   const data = await cachedGet(`${NEWSDATA_BASE}/news`, {
     params: {
       apikey: NEWSDATA_API_KEY,
-      q: `${location.name} weather`,
+      q,
       language: 'en',
-      category: 'environment',
     },
     ttlMs: NEWS_TTL_MS,
   });
