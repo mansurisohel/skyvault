@@ -35,7 +35,7 @@ function Toggle({ options, value, onChange }) {
  */
 function NewsProxyTest() {
   const [state, setState] = useState('idle'); // idle | loading | done
-  const [result, setResult] = useState(null); // { ok, title, detail }
+  const [result, setResult] = useState(null); // { ok, title, detail, diagnostics }
 
   async function runTest() {
     setState('loading');
@@ -62,6 +62,7 @@ function NewsProxyTest() {
             ok: false,
             title: 'Proxy reached the server, but got no articles',
             detail: data.reason || 'No further detail was returned.',
+            diagnostics: data.diagnostics || null,
           });
         }
       }
@@ -84,14 +85,32 @@ function NewsProxyTest() {
         Test the production news proxy
       </button>
       {result && (
-        <div className={`flex items-start gap-2 rounded-2xl px-3.5 py-3 text-xs leading-relaxed ${
+        <div className={`flex flex-col gap-2.5 rounded-2xl px-3.5 py-3 text-xs leading-relaxed ${
           result.ok ? 'bg-sky-400/10 text-sky-200' : 'bg-amber-400/10 text-amber-200'
         }`}
         >
-          {result.ok ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
-          <span>
-            <strong className="font-semibold">{result.title}.</strong> {result.detail}
-          </span>
+          <div className="flex items-start gap-2">
+            {result.ok ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+            <span>
+              <strong className="font-semibold">{result.title}.</strong> {result.detail}
+            </span>
+          </div>
+          {result.diagnostics && (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xl bg-black/20 px-3 py-2.5 data-mono text-[11px] text-amber-100/90">
+              <dt className="text-amber-200/60">Vercel environment</dt>
+              <dd>{result.diagnostics.vercelEnvironment}</dd>
+              <dt className="text-amber-200/60">Deployment URL</dt>
+              <dd className="break-all">{result.diagnostics.deploymentUrl || '\u2014'}</dd>
+              <dt className="text-amber-200/60">Git commit</dt>
+              <dd>{result.diagnostics.gitCommit || '\u2014'}</dd>
+              <dt className="text-amber-200/60">Similarly-named vars</dt>
+              <dd className="break-all">
+                {Array.isArray(result.diagnostics.similarlyNamedVarsFound)
+                  ? result.diagnostics.similarlyNamedVarsFound.join(', ')
+                  : result.diagnostics.similarlyNamedVarsFound}
+              </dd>
+            </dl>
+          )}
         </div>
       )}
     </div>

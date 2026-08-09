@@ -24,9 +24,25 @@ export default async function handler(req, res) {
   const key = process.env.GNEWS_API_KEY;
 
   if (!key) {
+    // Real, concrete diagnostics instead of a bare "not set" — this is
+    // what actually distinguishes "I haven't set it yet" from "I set it,
+    // but under the wrong name" or "I set it, but not for the environment
+    // I'm testing right now", which are the three most common causes.
+    const nearMisses = Object.keys(process.env).filter(
+      (k) => /gnews/i.test(k) && k !== 'GNEWS_API_KEY',
+    );
+
     res.status(200).json({
       articles: null,
       reason: 'GNEWS_API_KEY is not set in this deployment\u2019s environment variables.',
+      diagnostics: {
+        vercelEnvironment: process.env.VERCEL_ENV || 'unknown (not running on Vercel?)',
+        deploymentUrl: process.env.VERCEL_URL || null,
+        gitCommit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null,
+        similarlyNamedVarsFound: nearMisses.length
+          ? nearMisses
+          : 'none \u2014 no variable with "gnews" anywhere in its name exists at all in this function\u2019s environment',
+      },
     });
     return;
   }
