@@ -1,23 +1,25 @@
 // Vercel serverless function — proxies GNews so the API key never ships in
-// the client bundle. Reads GNEWS_API_KEY (no VITE_ prefix: this runs on the
-// server, not in the browser, so it must be set as a plain env var in the
-// Vercel project settings, not baked in at build time).
+// the client bundle and the request is same-origin (no browser CORS
+// involved at all, since the browser only ever talks to our own domain;
+// this server-to-server call to GNews has no CORS restrictions to begin
+// with). Reads GNEWS_API_KEY as a plain server-side env var — set it in
+// the hosting platform's project settings, NOT with a VITE_ prefix, or it
+// would get bundled into the client's public JS instead of staying secret.
 //
-// Frontend calls: /api/news?city=London
+// Frontend calls: /api/news
 // Local `npm run dev` (plain Vite, no serverless runtime) can't reach this
-// route — LatestNews.jsx falls back to a direct client-side call using
-// VITE_GNEWS_API_KEY for local development, then to static curated content
-// if neither is available. See README.md for the full explanation.
+// route — newsService.js falls back to generated insights in that case.
+// See README.md for the full explanation, and for deploying this on a
+// platform other than Vercel.
 //
-// IMPORTANT: the query is intentionally NOT city-specific. GNews's free tier
-// is 100 requests/day for the whole key, shared across every visitor to a
-// live deployment. Keying the cache per-city means every distinct city
-// searched burns a fresh request — on real traffic that exhausts the daily
-// quota within hours, after which every request (mobile or desktop) falls
-// back to curated content until the quota resets. Using one generic query
-// means every visitor, on every device, shares the same cached response —
-// which is what makes this sustainable on a free key at all.
-
+// IMPORTANT: the query is intentionally NOT city-specific. GNews's free
+// tier is 100 requests/day for the whole key, shared across every visitor
+// to a live deployment. Keying the query per searched city means every
+// distinct city burns a fresh request — on real traffic that exhausts the
+// daily quota within hours, after which every visitor falls back to
+// generated insights until the quota resets. One shared, general query
+// means every visitor shares the same cached response, which is what
+// makes a free-tier key sustainable on a real deployment at all.
 export default async function handler(req, res) {
   const key = process.env.GNEWS_API_KEY;
 
@@ -29,21 +31,19 @@ export default async function handler(req, res) {
     return;
   }
 
-  // A tightly-scoped weather query using GNews's documented phrase/OR
-  // operators — "weather forecast alert" as three bare words could match
-  // any article that happens to mention those terms individually, in any
-  // context; quoted phrases joined with OR keep it to genuinely
-  // weather-focused coverage.
-  const q = '"severe weather" OR "weather forecast" OR "storm warning" OR "weather alert" OR "extreme heat" OR "winter storm"';
+  // Quoted phrases joined with OR (GNews's documented query syntax) keep
+  // this to genuinely weather-focused coverage, rather than bare keywords
+  // that could match any article mentioning those words in passing.
+  const q = '"severe weather" OR "weather forecast" OR "storm warning" OR "weather alert" OR "extreme heat" OR "winter storm" OR "flood warning"';
 
   // Only the last 3 days, sorted newest-first — GNews's archive goes back
-  // to 2020, and without both of these a "relevant" (but stale) match from
-  // months ago could easily outrank something published an hour ago.
+  // years, and without both of these a "relevant" but months-old match
+  // could easily outrank something published an hour ago.
   const from = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
   try {
     const upstream = await fetch(
-      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=6&sortby=publishedAt&from=${from}&apikey=${key}`
+      `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=10&sortby=publishedAt&from=${from}&apikey=${key}`,
     );
 
     if (!upstream.ok) {
@@ -61,11 +61,13 @@ export default async function handler(req, res) {
     }
 
     const data = await upstream.json();
-    // One shared cache entry for everyone, refreshed at most every 30 minutes,
-    // serving stale content for up to 6 hours while it revalidates in the
-    // background. This is what keeps a single free-tier key viable on a
-    // live public deployment regardless of how much traffic it gets.
-    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
+    // One shared cache entry for everyone, refreshed at most every 30
+    // minutes, serving stale content for up to 6 hours while it
+    // revalidates in the background — this is what keeps a single
+    // free-tier key viable regardless of how much traffic the deployment
+    // gets, since most requests are served from Vercel's edge cache
+    // instead of hitting GNews (or this function) at all.
+    res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=21600');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ articles: null, reason: 'Failed to reach GNews', detail: String(err) });

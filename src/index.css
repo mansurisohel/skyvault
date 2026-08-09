@@ -116,6 +116,35 @@
     box-shadow: var(--shadow-glass);
   }
 
+  /* A near-opaque variant for elements you actively read/type into (the
+     search bar) rather than glance at (dashboard cards). The ambient
+     glass panels intentionally let the animated background show through —
+     good for atmosphere, but on a bright scene (sunny/hot daytime) that
+     same translucency can wash out text sitting directly on it. This
+     trades a little of that atmosphere for guaranteed legibility. */
+  .glass-solid {
+    background: color-mix(in srgb, var(--color-midnight-2) 95%, transparent);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid color-mix(in srgb, white 12%, transparent);
+    box-shadow: var(--shadow-glass);
+  }
+
+  /* Browsers (Chrome especially) force their own light autofill background
+     the moment a text input looks like an address/city field, which is
+     exactly what a location search box looks like — without this, the
+     input silently turns near-white while our text stays light-colored,
+     making it look "invisible"/"transparent" the moment autofill kicks in. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-mist-100);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-midnight-2) inset;
+    box-shadow: 0 0 0 1000px var(--color-midnight-2) inset;
+    caret-color: var(--color-mist-100);
+    transition: background-color 999999s ease-in-out 0s;
+  }
+
   .data-mono {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
@@ -160,7 +189,12 @@
 @keyframes rain-fall {
   from { transform: translate(0, -10%); opacity: 0; }
   10% { opacity: 1; }
-  to { transform: translate(-18px, 110vh); opacity: 0.3; }
+  to { transform: translate(var(--rain-drift, -18px), 110vh); opacity: 0.3; }
+}
+@keyframes rain-splash {
+  0%, 78% { transform: scale(0.3); opacity: 0; }
+  82% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 @keyframes snow-fall {
   0% { transform: translate(0, -5%); }
@@ -177,6 +211,13 @@
   0%, 92%, 100% { opacity: 0; }
   93%, 95% { opacity: 0.9; }
   94% { opacity: 0.3; }
+}
+@keyframes lightning-bolt {
+  0%, 91%, 100% { opacity: 0; transform: scaleY(0.85); }
+  92.5% { opacity: 1; transform: scaleY(1); }
+  93.5% { opacity: 0.2; }
+  94.5% { opacity: 0.8; }
+  96% { opacity: 0; }
 }
 @keyframes spin-slow {
   from { transform: rotate(0deg); }

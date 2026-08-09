@@ -1,8 +1,11 @@
-import { Trash2, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Trash2, KeyRound, CheckCircle2, XCircle, Info, PlugZap, Loader2, AlertTriangle,
+} from 'lucide-react';
 import { useWeatherContext } from '@/context/WeatherContext';
 import { Card } from '@/components/common/Primitives';
 import SectionHeading from '@/components/common/SectionHeading';
-import { OPENWEATHER_API_KEY, GNEWS_API_KEY, NEWSDATA_API_KEY } from '@/constants';
+import { OPENWEATHER_API_KEY, GNEWS_DEV_KEY } from '@/constants';
 import { locationLabel } from '@/utils/format';
 
 function Toggle({ options, value, onChange }) {
@@ -20,6 +23,77 @@ function Toggle({ options, value, onChange }) {
           {opt.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Actually calls /api/news and reports back what really happened, using the
+ * specific `reason` the serverless function returns — this is real ground
+ * truth about the production news setup, unlike the local-dev-key badge
+ * below (which can only ever report on a different, unrelated variable).
+ */
+function NewsProxyTest() {
+  const [state, setState] = useState('idle'); // idle | loading | done
+  const [result, setResult] = useState(null); // { ok, title, detail }
+
+  async function runTest() {
+    setState('loading');
+    try {
+      const res = await fetch('/api/news', { cache: 'no-store' });
+      const contentType = res.headers.get('content-type') || '';
+
+      if (!contentType.includes('application/json')) {
+        setResult({
+          ok: false,
+          title: 'The proxy isn\u2019t reachable here',
+          detail: 'That\u2019s expected with plain `npm run dev` \u2014 it has no serverless runtime. Deploy to Vercel, or run `vercel dev` locally, to test the real thing.',
+        });
+      } else {
+        const data = await res.json();
+        if (res.ok && data.articles?.length) {
+          setResult({
+            ok: true,
+            title: `Working \u2014 got ${data.articles.length} live articles`,
+            detail: 'GNEWS_API_KEY is set correctly on this deployment and GNews responded normally.',
+          });
+        } else {
+          setResult({
+            ok: false,
+            title: 'Proxy reached the server, but got no articles',
+            detail: data.reason || 'No further detail was returned.',
+          });
+        }
+      }
+    } catch (err) {
+      setResult({ ok: false, title: 'Request failed', detail: String(err) });
+    } finally {
+      setState('done');
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={runTest}
+        disabled={state === 'loading'}
+        className="flex w-fit items-center gap-2 rounded-full bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-300 transition-colors hover:bg-sky-500/25 disabled:opacity-60"
+      >
+        {state === 'loading' ? <Loader2 size={15} className="animate-spin" /> : <PlugZap size={15} />}
+        Test the production news proxy
+      </button>
+      {result && (
+        <div className={`flex items-start gap-2 rounded-2xl px-3.5 py-3 text-xs leading-relaxed ${
+          result.ok ? 'bg-sky-400/10 text-sky-200' : 'bg-amber-400/10 text-amber-200'
+        }`}
+        >
+          {result.ok ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+          <span>
+            <strong className="font-semibold">{result.title}.</strong> {result.detail}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -82,24 +156,20 @@ export default function PreferencesSection() {
               : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set — demo data</span>}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="text-slate-400">GNews (weather news)</span>
-            {GNEWS_API_KEY
-              ? <span className="flex items-center gap-1.5 text-sky-300"><CheckCircle2 size={15} /> Connected</span>
+            <span className="text-slate-400">GNews — local dev fallback key</span>
+            {GNEWS_DEV_KEY
+              ? <span className="flex items-center gap-1.5 text-sky-300"><CheckCircle2 size={15} /> Set</span>
               : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set</span>}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="text-slate-400">NewsData.io (weather news)</span>
-            {NEWSDATA_API_KEY
-              ? <span className="flex items-center gap-1.5 text-sky-300"><CheckCircle2 size={15} /> Connected</span>
-              : <span className="flex items-center gap-1.5 text-slate-500"><XCircle size={15} /> Not set</span>}
+          <div className="flex items-start gap-2 rounded-2xl bg-white/5 px-3.5 py-3 text-xs leading-relaxed text-slate-400">
+            <Info size={14} className="mt-0.5 shrink-0 text-sky-300" />
+            <span>
+              The badge above only checks the local-dev fallback key — it can’t see the real production key at all (that’s by design; the server keeps it private). Use the button below for the real answer.
+            </span>
           </div>
-          {!GNEWS_API_KEY && !NEWSDATA_API_KEY && (
-            <p className="text-xs text-amber-300/80">
-              No news provider configured — the News section shows generated insights from live conditions instead.
-            </p>
-          )}
+          <NewsProxyTest />
           <p className="text-xs text-slate-500">
-            Add keys to your <code className="data-mono">.env</code> file as <code className="data-mono">OPENWEATHER_API_KEY</code>, <code className="data-mono">GNEWS_API_KEY</code>, and/or <code className="data-mono">NEWSDATA_API_KEY</code>, then restart the dev server.
+            Add keys to your <code className="data-mono">.env</code> file as <code className="data-mono">OPENWEATHER_API_KEY</code> and/or <code className="data-mono">VITE_GNEWS_DEV_KEY</code> (both are local-dev only). For a real deployment, set <code className="data-mono">GNEWS_API_KEY</code> in your hosting platform’s dashboard — never in <code className="data-mono">.env</code>, since that file never leaves your machine.
           </p>
         </Card>
       </div>

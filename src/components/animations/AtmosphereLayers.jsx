@@ -17,30 +17,66 @@ function useSeeded(count, seed, fn) {
   );
 }
 
-export function RainLayer({ intensity = 'medium' }) {
+export function RainLayer({ intensity = 'medium', windDeg = null }) {
   const count = { light: 40, medium: 80, heavy: 130 }[intensity] ?? 80;
   const speedFactor = { light: 1.3, medium: 1, heavy: 0.75 }[intensity] ?? 1;
-  const drops = useSeeded(count, 3, (i, rand) => ({
+  // Real rain rarely falls perfectly vertically — it leans with the wind.
+  // windDeg (meteorological: direction the wind blows FROM) becomes a
+  // horizontal drift applied *inside* the fall keyframe itself via a CSS
+  // custom property (a plain inline rotate() would get silently discarded,
+  // since a running CSS animation's own transform fully replaces whatever
+  // transform was set inline — they don't compose).
+  const driftPx = windDeg === null ? -60 : Math.max(-160, Math.min(160, Math.sin((windDeg * Math.PI) / 180) * 130));
+
+  const drops = useSeeded(count, 3, (i, rand) => {
+    // Two depth layers: a handful of large, sharp, fast "near" drops and
+    // many small, faint, slightly blurred "far" ones — real rain reads as
+    // a field of depth, not one uniform layer of identical streaks.
+    const near = rand(5) > 0.82;
+    return {
+      id: i,
+      left: rand(0) * 100,
+      delay: rand(1) * 2,
+      duration: (0.45 + rand(2) * 0.45) * speedFactor * (near ? 0.85 : 1.1),
+      height: near ? 22 + rand(3) * 14 : 10 + rand(3) * 10,
+      width: near ? 2 : 1,
+      opacity: near ? 0.45 + rand(4) * 0.3 : 0.15 + rand(4) * 0.2,
+      blur: near ? 0 : 0.4,
+    };
+  });
+
+  const splashes = useSeeded(Math.round(count * 0.35), 23, (i, rand) => ({
     id: i,
     left: rand(0) * 100,
-    delay: rand(1) * 2,
-    duration: (0.5 + rand(2) * 0.5) * speedFactor,
-    height: 14 + rand(3) * 18,
-    opacity: 0.2 + rand(4) * 0.35,
+    delay: rand(1) * 2.4,
+    duration: (0.45 + rand(2) * 0.45) * speedFactor,
   }));
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" style={{ '--rain-drift': `${driftPx}px` }}>
       {drops.map((d) => (
         <span
           key={d.id}
-          className="absolute top-0 w-px bg-gradient-to-b from-transparent via-sky-200 to-transparent"
+          className="absolute top-0 rounded-full bg-gradient-to-b from-transparent via-sky-200 to-transparent"
           style={{
             left: `${d.left}%`,
             height: d.height,
+            width: d.width,
             opacity: d.opacity,
+            filter: d.blur ? `blur(${d.blur}px)` : undefined,
             animation: `rain-fall ${d.duration}s linear infinite`,
             animationDelay: `${d.delay}s`,
+          }}
+        />
+      ))}
+      {splashes.map((s) => (
+        <span
+          key={`splash-${s.id}`}
+          className="absolute bottom-0 h-0.5 w-2 rounded-full bg-sky-100"
+          style={{
+            left: `${s.left}%`,
+            animation: `rain-splash ${s.duration}s linear infinite`,
+            animationDelay: `${s.delay}s`,
           }}
         />
       ))}
@@ -80,13 +116,55 @@ export function SnowLayer({ intensity = 'medium' }) {
   );
 }
 
+const BOLT_PATH = 'M50 0 L34 46 L52 46 L28 100 L58 42 L40 42 Z';
+
 export function LightningLayer() {
+  // Several independently-timed flash layers rather than one metronomic
+  // pulse — real lightning strikes at irregular intervals, sometimes with
+  // a quick double-flash, never on a clean repeating beat.
+  const ambientFlashes = useSeeded(3, 31, (i, rand) => ({
+    id: i,
+    duration: 6 + rand(0) * 7,
+    delay: rand(1) * 6,
+  }));
+
+  const bolts = useSeeded(2, 37, (i, rand) => ({
+    id: i,
+    left: 15 + rand(0) * 70,
+    top: -5 + rand(1) * 10,
+    scale: 0.7 + rand(2) * 0.9,
+    duration: 9 + rand(3) * 8,
+    delay: rand(4) * 9,
+  }));
+
   return (
-    <div
-      className="absolute inset-0 bg-white pointer-events-none mix-blend-overlay"
-      style={{ animation: 'lightning-flash 7s ease-in-out infinite' }}
-      aria-hidden="true"
-    />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {ambientFlashes.map((f) => (
+        <div
+          key={f.id}
+          className="absolute inset-0 bg-white mix-blend-overlay"
+          style={{ animation: `lightning-flash ${f.duration}s ease-in-out infinite`, animationDelay: `${f.delay}s` }}
+        />
+      ))}
+      {bolts.map((b) => (
+        <svg
+          key={b.id}
+          viewBox="0 0 100 100"
+          className="absolute drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]"
+          style={{
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            width: 60 * b.scale,
+            height: 60 * b.scale,
+            opacity: 0,
+            animation: `lightning-bolt ${b.duration}s ease-in-out infinite`,
+            animationDelay: `${b.delay}s`,
+          }}
+        >
+          <path d={BOLT_PATH} fill="white" />
+        </svg>
+      ))}
+    </div>
   );
 }
 

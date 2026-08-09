@@ -18,7 +18,7 @@ Open the printed local URL (usually `http://localhost:5173`).
 1. Copy `.env.example` to `.env`.
 2. Add your keys — either naming works for each one (e.g. `GNEWS_API_KEY` or `VITE_GNEWS_API_KEY`, see `vite.config.js`):
    - `OPENWEATHER_API_KEY` — [openweathermap.org/api](https://openweathermap.org/api). The app deliberately uses only the endpoints included in every free-tier key — **Current Weather**, **5 Day / 3 Hour Forecast**, **Geocoding**, and **Air Pollution** — not One Call 3.0, which requires opting into a separate subscription even with a valid key (a common, silent cause of an app quietly falling back to demo data). One trade-off: the "daily" outlook is derived by grouping 3-hour forecast steps by day rather than a true daily endpoint, and weather alerts aren't available on this tier, so the Active Alerts section simply stays empty unless one is present some other way.
-   - `GNEWS_API_KEY` — [gnews.io](https://gnews.io) and/or `NEWSDATA_API_KEY` — [newsdata.io](https://newsdata.io) (both optional; set either or both). GNews is tried first, then NewsData.io. News refreshes automatically every 5 minutes and whenever the tab regains focus. Without at least one key, or if both fail, the News section shows **Insights** — short briefs generated directly from the live weather snapshot (current conditions, today's outlook, UV, air quality, hydration, sun times, visibility, multi-day trend) rather than generic filler, and clearly labeled as generated rather than sourced journalism.
+   - **Weather news** — see [News architecture](#news-architecture) below for the full picture; in short, set `GNEWS_API_KEY` as a server-side env var in your hosting platform for production, and/or `VITE_GNEWS_DEV_KEY` in `.env` for local dev. Without either, or if both fail, the News section shows **Insights** — short briefs generated directly from the live weather snapshot (current conditions, today's outlook, UV, air quality, hydration, sun times, visibility, multi-day trend) rather than generic filler, and clearly labeled as generated rather than sourced journalism.
 3. Restart the dev server.
 
 The Preferences section (bottom of the page) shows live connection status for both keys at any time.
@@ -32,6 +32,18 @@ The Preferences section (bottom of the page) shows live connection status for bo
 | `npm run preview` | Preview the production build locally |
 | `npm run lint` | Run ESLint |
 | `npm run format` | Format the codebase with Prettier |
+
+## News architecture
+
+Weather news is deliberately **not** called directly from the browser with an exposed API key — that pattern is fragile across hosting environments (CORS behavior varies by provider and origin) and bakes a secret into public client JS. Instead:
+
+- **`api/news.js`** is a Vercel serverless function that calls GNews server-side and returns the result to the frontend via a same-origin `/api/news` request — no CORS involved, and the key never leaves the server.
+- Set `GNEWS_API_KEY` as a plain (no `VITE_` prefix) environment variable in your **hosting platform's project settings** — e.g. the Vercel dashboard, not `.env`. `vercel.json` is already configured for this.
+- The function deliberately queries general weather news (not a specific city) and sends `Cache-Control` headers so Vercel's edge network caches one shared response for a while — GNews's free tier is 100 requests/day *for the whole key*, shared across every visitor; a per-city query would exhaust that almost immediately under real traffic.
+- Locally, plain `npm run dev` has no serverless runtime, so `/api/news` isn't reachable. Set `VITE_GNEWS_DEV_KEY` in `.env` to let the app call GNews directly from the browser during local development instead. This key **will** be visible in the client bundle — that's fine for your own local dev, but never set this specific variable in a real deployment's environment.
+- If either path fails (no key, quota exhausted, network error), the News section falls back to insights generated from the live weather snapshot rather than showing nothing.
+
+**Deploying somewhere other than Vercel?** `api/news.js` uses Vercel's serverless function convention (a default-exported handler receiving `req`/`res`). Netlify Functions, Cloudflare Pages Functions, and others use a slightly different shape — the logic inside (the GNews call, query, and caching approach) carries over directly, but the function signature and file location will need adapting to that platform's convention.
 
 ## Layout
 
@@ -69,9 +81,9 @@ src/
 - **One instrument, many gauges.** The radial dial used for UV, air quality, and wind direction echoes the compass needle in the SkyVault mark, so the health and wind cards read as a single cohesive instrument panel.
 - **Moon-phase guidance is astronomy, not an API.** Phase and illumination are computed from a standard synodic-month formula; activity suggestions are grounded in real, commonly cited reasoning (dark-sky visibility, solunar theory for fishing, lunar planting calendars) rather than invented claims.
 - **Pollen and (sometimes) UV are labeled as estimates.** Free weather APIs don't expose real pollen data, and the dedicated UV endpoint is deprecated and inconsistently available — both fall back to clearly-labeled heuristics instead of being presented as measured data.
-- **News is honest about what it is, and stays current.** With a GNews or NewsData.io key, articles refresh automatically every 5 minutes and on tab refocus. Without a key, or if both providers fail, the News section shows short insights generated directly from the live snapshot — genuinely relevant to the searched location, but labeled as generated rather than disguised as third-party journalism.
+- **News is honest about what it is, and stays current.** With GNews configured, articles refresh automatically every 5 minutes and on tab refocus. Without a key, or if the request fails, the News section shows short insights generated directly from the live snapshot — genuinely relevant to the searched location, but labeled as generated rather than disguised as third-party journalism.
 - **Animations are CSS-first.** Clouds, rain, snow, fog, and stars are driven by CSS transforms/keyframes rather than per-frame JavaScript, and everything respects `prefers-reduced-motion`.
 
 ## Tech stack
 
-React 19 · Vite · Tailwind CSS 4 · Axios · Framer Motion · Lucide React · React Leaflet (OpenStreetMap + CARTO dark tiles) · Recharts · OpenWeather API · GNews API · NewsData.io API · ESLint · Prettier
+React 19 · Vite · Tailwind CSS 4 · Axios · Framer Motion · Lucide React · React Leaflet (OpenStreetMap + CARTO dark tiles) · Recharts · OpenWeather API · GNews API (via Vercel serverless proxy) · ESLint · Prettier

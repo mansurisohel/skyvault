@@ -84,7 +84,7 @@ export default function SearchBar({ variant = 'compact', onSelect }) {
   return (
     <div ref={containerRef} className="relative w-full">
       <div
-        className={`group glass flex items-center gap-2.5 rounded-full transition-shadow focus-within:shadow-[0_0_0_3px_rgba(127,171,255,0.25)] ${
+        className={`group glass-solid flex items-center gap-2.5 rounded-full transition-shadow focus-within:shadow-[0_0_0_3px_rgba(127,171,255,0.25)] ${
           hero ? 'px-5 py-4 sm:px-6 sm:py-4' : 'px-4 py-2'
         }`}
       >
@@ -102,7 +102,10 @@ export default function SearchBar({ variant = 'compact', onSelect }) {
           aria-expanded={open}
           aria-autocomplete="list"
           role="combobox"
-          className={`w-full bg-transparent text-mist-100 placeholder:text-slate-500 outline-none ${hero ? 'text-base sm:text-lg' : 'text-sm'}`}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
+          className={`w-full min-w-0 bg-transparent text-mist-100 caret-sky-300 placeholder:text-slate-400 outline-none ${hero ? 'text-base sm:text-lg' : 'text-sm'}`}
         />
         {loading && <Loader2 size={hero ? 18 : 16} className="animate-spin text-slate-400 shrink-0" />}
         {query && !loading && (
@@ -124,7 +127,7 @@ export default function SearchBar({ variant = 'compact', onSelect }) {
       </div>
 
       {open && (
-        <div className="glass-panel absolute z-30 mt-2 w-full max-h-80 overflow-y-auto p-2 scrollbar-none">
+        <div className="glass-solid absolute z-30 mt-2 w-full max-h-80 overflow-y-auto rounded-2xl p-2 scrollbar-none">
           {!searching && history.length > 0 && (
             <p className="px-3 pt-1 pb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Recent searches</p>
           )}

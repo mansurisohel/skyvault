@@ -46,7 +46,7 @@ export default function NewsSection() {
       {kind === 'insights' && status !== 'loading' && items.length > 0 && (
         <div className="mb-4 flex items-center gap-2 rounded-2xl bg-violet-500/10 px-4 py-2.5 text-xs text-violet-200">
           <Sparkles size={14} className="shrink-0" />
-          These are generated directly from the current forecast, not sourced news articles. Add a GNews or NewsData.io API key in <code className="data-mono">.env</code> for live third-party coverage.
+          These are generated directly from the current forecast, not sourced news articles. Configure a GNews API key (see <code className="data-mono">.env.example</code>) for live third-party coverage.
         </div>
       )}
 

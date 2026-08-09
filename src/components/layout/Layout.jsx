@@ -16,6 +16,7 @@ export default function Layout({ children }) {
     : 'clear-day';
   const period = snapshot ? getDayPeriod(snapshot.current, now) : 'afternoon';
   const windSpeed = snapshot?.current.wind_speed ?? 0;
+  const windDeg = snapshot?.current.wind_deg ?? null;
   const rainVolume = snapshot?.current.rainVolume ?? 0;
   const snowVolume = snapshot?.current.snowVolume ?? 0;
   const cloudCover = snapshot?.current.clouds ?? 0;
@@ -26,6 +27,7 @@ export default function Layout({ children }) {
         condition={condition}
         period={period}
         windSpeed={windSpeed}
+        windDeg={windDeg}
         rainVolume={rainVolume}
         snowVolume={snowVolume}
         cloudCover={cloudCover}

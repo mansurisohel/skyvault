@@ -37,10 +37,10 @@ export default [
     },
   },
   {
-    // Build/tooling config files run under Node, not the browser — they
-    // need Node globals (process, __dirname via import.meta, etc.) rather
-    // than the browser globals used for application source.
-    files: ['*.config.js'],
+    // Build/tooling config files and serverless API functions run under
+    // Node, not the browser — they need Node globals (process, etc.)
+    // rather than the browser globals used for application source.
+    files: ['*.config.js', 'api/**/*.js'],
     languageOptions: {
       globals: { ...globals.node },
     },

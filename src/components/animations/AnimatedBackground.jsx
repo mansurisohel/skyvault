@@ -25,7 +25,7 @@ function cloudDensity(cloudPct) {
   return 'low';
 }
 
-function WeatherLayers({ condition, cloudyDensity, rainVolume, snowVolume }) {
+function WeatherLayers({ condition, cloudyDensity, rainVolume, snowVolume, windDeg }) {
   return (
     <>
       {condition === 'clear-day' && <SunGlowLayer />}
@@ -41,13 +41,13 @@ function WeatherLayers({ condition, cloudyDensity, rainVolume, snowVolume }) {
       {condition === 'rain' && (
         <>
           <CloudLayer density="high" tone="dark" seed={6} />
-          <RainLayer intensity={rainIntensity(rainVolume)} />
+          <RainLayer intensity={rainIntensity(rainVolume)} windDeg={windDeg} />
         </>
       )}
       {condition === 'storm' && (
         <>
           <CloudLayer density="high" tone="dark" seed={8} />
-          <RainLayer intensity={rainVolume >= 6 ? 'heavy' : 'medium'} />
+          <RainLayer intensity={rainVolume >= 6 ? 'heavy' : 'medium'} windDeg={windDeg} />
           <LightningLayer />
         </>
       )}
@@ -64,7 +64,7 @@ function WeatherLayers({ condition, cloudyDensity, rainVolume, snowVolume }) {
 }
 
 export default function AnimatedBackground({
-  condition = 'clear-day', period = 'afternoon', windSpeed = 0, rainVolume = 0, snowVolume = 0, cloudCover = 60,
+  condition = 'clear-day', period = 'afternoon', windSpeed = 0, windDeg = null, rainVolume = 0, snowVolume = 0, cloudCover = 60,
 }) {
   const gradient = gradientFor(condition, period);
   const tint = PERIOD_TINTS[period] ?? 'transparent';
@@ -120,6 +120,7 @@ export default function AnimatedBackground({
             cloudyDensity={cloudyDensity}
             rainVolume={rainVolume}
             snowVolume={snowVolume}
+            windDeg={windDeg}
           />
         </motion.div>
       </AnimatePresence>

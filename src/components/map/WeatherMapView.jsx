@@ -250,7 +250,7 @@ export default function WeatherMapView() {
             maxZoom={MAX_ZOOM}
             scrollWheelZoom
             zoomControl={false}
-            className="min-h-[50vh] sm:min-h-[58vh] lg:min-h-[65vh]"
+            className="min-h-[50dvh] sm:min-h-[58dvh] lg:min-h-[65vh]"
             style={{ height: '100%', width: '100%', background: '#0b1224' }}
           >
             <TileLayer

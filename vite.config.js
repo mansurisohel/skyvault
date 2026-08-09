@@ -10,9 +10,17 @@ export default defineConfig(({ mode }) => {
   // Vite only exposes env vars prefixed with VITE_ to client code by default
   // (a deliberate safeguard against leaking server secrets into the browser
   // bundle). Loading with an empty prefix here lets .env accept either
-  // GNEWS_API_KEY or VITE_GNEWS_API_KEY (same for OpenWeather/NewsData) —
-  // whichever naming someone reaches for, it works, without loosening that
-  // safeguard for anything else in the project.
+  // OPENWEATHER_API_KEY or VITE_OPENWEATHER_API_KEY — whichever naming
+  // someone reaches for, it works.
+  //
+  // IMPORTANT: this convenience is intentionally NOT extended to the news
+  // key. GNEWS_API_KEY is read directly by api/news.js on the server
+  // (process.env, outside of Vite entirely) and must never be bundled into
+  // client JS — that would defeat the whole point of proxying it. The
+  // separate, distinctly-named VITE_GNEWS_DEV_KEY below is the only news
+  // key the client ever sees, and only via Vite's normal built-in
+  // VITE_-prefix handling (no custom resolution, so there's no path by
+  // which the server-side GNEWS_API_KEY could end up in the client bundle).
   const env = loadEnv(mode, process.cwd(), '')
   const resolvedKey = (bareName, viteName) => env[viteName] || env[bareName] || ''
 
@@ -21,12 +29,6 @@ export default defineConfig(({ mode }) => {
     define: {
       'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(
         resolvedKey('OPENWEATHER_API_KEY', 'VITE_OPENWEATHER_API_KEY'),
-      ),
-      'import.meta.env.VITE_GNEWS_API_KEY': JSON.stringify(
-        resolvedKey('GNEWS_API_KEY', 'VITE_GNEWS_API_KEY'),
-      ),
-      'import.meta.env.VITE_NEWSDATA_API_KEY': JSON.stringify(
-        resolvedKey('NEWSDATA_API_KEY', 'VITE_NEWSDATA_API_KEY'),
       ),
     },
     resolve: {
