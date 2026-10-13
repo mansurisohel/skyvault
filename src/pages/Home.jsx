@@ -13,7 +13,6 @@ import WindCard from '@/components/dashboard/WindCard';
 import ActivityRecommendationsCard from '@/components/dashboard/ActivityRecommendationsCard';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 import FavoritesSection from '@/components/dashboard/FavoritesSection';
-import PreferencesSection from '@/components/dashboard/PreferencesSection';
 import WeatherMapView from '@/components/map/WeatherMapView';
 import NewsSection from '@/components/news/NewsSection';
 import SectionHeading from '@/components/common/SectionHeading';
@@ -36,7 +35,7 @@ export default function Home() {
       {/* Overview: hero search + current conditions */}
       <section id="overview" className="scroll-mt-24">
         <motion.div {...fadeIn()} className="relative mx-auto mb-8 max-w-2xl text-center">
-          <div className="absolute -inset-x-4 -inset-y-3 -z-10 rounded-3xl bg-abyss/35 backdrop-blur-[2px] sm:-inset-x-8" aria-hidden="true" />
+          <div className="absolute -inset-x-4 -inset-y-3 -z-10 rounded-3xl  sm:-inset-x-8" aria-hidden="true" />
           <p className="section-eyebrow mb-2">SkyVault Weather Data</p>
           <h1 className="font-display text-3xl font-semibold text-mist-50 sm:text-4xl">
             Precise, beautiful weather for wherever you are
@@ -123,8 +122,6 @@ export default function Home() {
       {/* Favorites */}
       <FavoritesSection />
 
-      {/* Preferences */}
-      <PreferencesSection />
     </div>
   );
 }
