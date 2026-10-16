@@ -2,6 +2,7 @@ import logoLockup from '@/assets/images/logo-lockup.webp';
 import { useServiceStatus } from '@/hooks/useServiceStatus';
 import { isDemoStatus } from '@/services/serviceStatus';
 
+const HAS_CARTO_KEY = Boolean(import.meta.env.VITE_PUBLIC_CARTO_API_KEY?.trim());
 const link = 'underline decoration-white/20 underline-offset-2 hover:text-mist-100';
 
 export default function Footer() {
@@ -28,7 +29,13 @@ export default function Footer() {
             {' '}News by{' '}
             <a className={link} href="https://gnews.io/" target="_blank" rel="noopener noreferrer">GNews</a>.
             {' '}Base map &copy;{' '}
-            <a className={link} href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors.
+            <a className={link} href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
+            {HAS_CARTO_KEY && (
+              <>
+                , <a className={link} href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>
+              </>
+            )}
+            .
           </p>
         </div>
       </div>

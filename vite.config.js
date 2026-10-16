@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss(), apiPlugin({ env })],
     resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
 
-    // Only variables starting with VITE_PUBLIC_ can ever reach browser code.
+    // Only variables starting with VITE_PUBLIC_ can ever reach browser code
+    // (currently just the optional, domain-restrictable CARTO basemap key).
     // This also protects against secrets accidentally named VITE_*.
     envPrefix: 'VITE_PUBLIC_',
 

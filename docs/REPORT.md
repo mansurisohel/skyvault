@@ -68,7 +68,8 @@ non-working radar. The most serious findings, all verified by evidence rather th
 | 32 | Precipitation tab empty unless radar on | Design gap | OpenWeather precipitation layer when radar is off |
 | 33 | No failure feedback; expired frames | No health tracking or refresh | Tile-health tracking + notices + Retry; frame list refreshed every 5 min; stale-radar notice; frames validated (host, path, age) |
 | 34 | Map loaded eagerly | n/a | Loaded when scrolled near; code-split |
-| 35 | Attribution incomplete | n/a | RainViewer, OpenWeather, CARTO, OSM on the map; all providers in footer |
+| 35 | Attribution incomplete | n/a | RainViewer, OpenWeather and OpenStreetMap (plus CARTO when keyed) on the map; all providers in footer |
+| 36 | **"API KEY REQUIRED" watermark across the base map** (reported after the first delivery) | CARTO began requiring a free API key on `basemaps.cartocdn.com` in late Aug 2026; unkeyed tiles return a watermarked image with HTTP 200, so error tracking cannot see it. My first browser tests mocked the base-map tiles and therefore missed it, and I should have flagged base-map terms as a live risk rather than a footnote. | `components/map/baseMap.js`: with `VITE_PUBLIC_CARTO_API_KEY` use CARTO dark tiles (`rastertiles/dark_all/{z}/{x}/{y}.png?key=`); without it use keyless OpenStreetMap tiles, darkened by a CSS filter. Unkeyed CARTO is never requested. |
 
 ### UI, accessibility, performance
 - Global `:focus-visible` forced `border-radius: 4px`, squaring every pill on keyboard focus: removed.
@@ -189,10 +190,10 @@ non-working radar. The most serious findings, all verified by evidence rather th
 
 ### Passed (executed)
 - `npm ci` from the lockfile in a clean directory, `npm run lint` (0 errors, 0 warnings; baseline had 8 warnings), `npm run build`
-- `npm test`: **78 tests**: 25 API handler tests (validation, 401/403/429/5xx/timeout/malformed JSON mapping, no key leakage, dedupe,
-  legacy var names), 44 service/utility tests, 9 context tests (race, abort, stale flag, error recovery, units, geolocation denial,
+- `npm test`: **80 tests**: 25 API handler tests (validation, 401/403/429/5xx/timeout/malformed JSON mapping, no key leakage, dedupe,
+  legacy var names), 46 service/utility tests (incl. base-map selection), 9 context tests (race, abort, stale flag, error recovery, units, geolocation denial,
   corrupted storage). A mutation check confirmed the race tests fail when the guard is removed.
-- **76 real-browser checks** (Chromium via Playwright, production build served with the exact `vercel.json` headers incl. CSP, real
+- **79 real-browser checks** (plus a separate keyed-build check that CARTO URLs carry `?key=` and OSM is not requested) (Chromium via Playwright, production build served with the exact `vercel.json` headers incl. CSP, real
   `/api` handlers, upstream providers mocked): live render, UV label, "Now" tile, request counts, keyboard search, stale search and
   weather races, °F without refetch, lazy map, radar zoom/URL/attribution/layer count, zoom buttons and double-click not selecting,
   fullscreen dialog, radar failure, news success/quota/retry, rejected key, server error + retry, offline, geolocation denied/granted,
@@ -202,6 +203,9 @@ non-working radar. The most serious findings, all verified by evidence rather th
 - Build output scan: 0 occurrences of either original key, `appid=`, or `VITE_OPENWEATHER`.
 
 ### Not executed / unverified: please check these yourself
+- **Base map:** the CARTO key URL format comes from CARTO's own documentation and community posts; I could not request real CARTO or
+  OpenStreetMap tiles from my sandbox. The darkened-OSM look was checked with a synthetic tile in OSM's colour palette, not real tiles.
+  Base-map tiles were mocked in my browser tests, which is exactly how the watermark got past them. Please look at the live map after deploying.
 - **No live calls to OpenWeather, GNews, Open-Meteo or RainViewer** (my sandbox has no outbound access to them). Endpoints,
   parameters and response shapes were checked against each provider's published docs and exercised through mocks. A first run with your
   real keys is the real integration test. GNews `from`/`q` handling is docs-based only.
@@ -228,5 +232,6 @@ non-working radar. The most serious findings, all verified by evidence rather th
 |---|---|---|
 | `OPENWEATHER_API_KEY` | Private (server only) | `.env` locally, Vercel Environment Variables |
 | `GNEWS_API_KEY` | Private (server only) | `.env` locally, Vercel Environment Variables |
+| `VITE_PUBLIC_CARTO_API_KEY` | Public, optional | `.env` locally, Vercel Environment Variables (build time) |
 
-There are no public variables.
+`VITE_PUBLIC_CARTO_API_KEY` (optional) is the only **public** variable: CARTO needs the key in each tile URL, so restrict it to your domain in the CARTO dashboard. It is applied at build time (redeploy after changing). Without it the OpenStreetMap fallback is used.

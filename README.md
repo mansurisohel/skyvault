@@ -47,9 +47,19 @@ If `.env` has no keys, the app starts in **demo mode**: sample data, labeled "Sa
 | --- | --- | --- | --- |
 | `OPENWEATHER_API_KEY` | For live weather | **Private (server only)** | `api/weather`, `api/geocode`, `api/tiles` |
 | `GNEWS_API_KEY` | For live news | **Private (server only)** | `api/news` |
+| `VITE_PUBLIC_CARTO_API_KEY` | Optional | **Public (shipped to the browser, by design)** | Dark base map tiles |
 
-There are **no public (browser-visible) variables**. `vite.config.js` sets `envPrefix: 'VITE_PUBLIC_'`,
-so even a mistakenly named `VITE_...` secret can never be bundled into client code.
+The CARTO key is the only public variable: CARTO's tile service requires the key inside each tile URL, so it
+cannot be hidden. Restrict it to your domain in the CARTO basemaps dashboard. It is applied at **build** time,
+so redeploy after changing it. `vite.config.js` sets `envPrefix: 'VITE_PUBLIC_'`, so a mistakenly named `VITE_...`
+secret can never be bundled into client code.
+
+**Base map:** CARTO began requiring a free key in late August 2026; unkeyed tiles show an "API KEY REQUIRED"
+watermark. Without `VITE_PUBLIC_CARTO_API_KEY`, SkyVault uses OpenStreetMap tiles (no key), darkened to match the
+theme. They are served by OpenStreetMap's volunteer-run servers, so keep to their
+[tile usage policy](https://operations.osmfoundation.org/policies/tiles/) (fine for light traffic; use a keyed
+provider for heavy use). Get a free CARTO key (about a minute, no account, 5M tiles/month) at
+https://carto.com/basemaps/apikey .
 
 Legacy names (`VITE_OPENWEATHER_API_KEY`, `VITE_GNEWS_DEV_KEY`) are still read by the **server** so
 existing setups keep working, but they log a rename hint. Rename them.
@@ -63,6 +73,7 @@ existing setups keep working, but they log a rename hint. Rename them.
 4. Open **Settings → Environment Variables** and add, for *Production*, *Preview* and *Development*:
    - `OPENWEATHER_API_KEY`
    - `GNEWS_API_KEY`
+   - `VITE_PUBLIC_CARTO_API_KEY` (optional; without it the OpenStreetMap base map is used)
 5. Click **Deploy**. Environment variable changes only apply to **new** deployments, so redeploy
    after changing them.
 6. Verify: open `https://<your-app>.vercel.app/api/weather?lat=51.5&lon=-0.12`. You should see JSON.
@@ -95,7 +106,7 @@ Earlier versions of this project compiled both keys into the shipped JavaScript.
 | UV index | Open-Meteo | Keyless. Free for **non-commercial** use (CC BY 4.0), so check their terms for commercial deployments. OpenWeather retired its own UV endpoint in 2021. If Open-Meteo is unreachable the UI shows a value labeled "(est.)". |
 | Rain radar | RainViewer | Past ~2 hours, 10-minute steps, tiles up to **zoom 7** (the map upscales beyond that). |
 | News | GNews | Free plan: 100 requests/day, 1/second, 10 articles per request. The server query is general and CDN-cached so visitors share one request. |
-| Base map | CARTO / OpenStreetMap | Attribution shown on the map. Review CARTO's usage terms for high-traffic or commercial use. |
+| Base map | OpenStreetMap, or CARTO when a key is set | Attribution shown on the map. CARTO needs a free key; OSM tiles are subject to OSM's fair-use tile policy. |
 
 Rules the app follows: it never invents live readings; sample data is always labeled; failed live
 requests show an error with a retry (they do not silently fall back to fake data); news is never
@@ -109,6 +120,7 @@ fabricated, and generated "insights" are labeled as such.
   couple of hours to activate.
 - **News shows generated insights**: the message under "Weather news" says why (missing key, daily quota
   of 100 requests, rate limit, offline).
+- **"API KEY REQUIRED" watermark on the map**: you are using CARTO tiles without a valid key. Remove the CARTO key variable to use the OpenStreetMap fallback, or set a valid `VITE_PUBLIC_CARTO_API_KEY` and **redeploy**. Browsers cache tiles, so hard-refresh (Ctrl+F5) afterwards.
 - **Weather layers say they need a key**: only the Precipitation tab's radar works without a key.
 - **API routes "not reachable"**: you opened a static copy of `dist/` (for example from a file server).
   Use `npm run preview` or deploy to Vercel.

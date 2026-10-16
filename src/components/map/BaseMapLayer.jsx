@@ -2,17 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { trackTileHealth } from './tileHealth';
+import { getBaseMapConfig } from './baseMap';
 
-const BASE_PANE = 'baseMapPane';
+// The only variable intended to be public: a restrictable CARTO basemap key.
+const CARTO_KEY = import.meta.env.VITE_PUBLIC_CARTO_API_KEY;
 
-/**
- * Dark base map using free OpenStreetMap tiles with a CSS inversion filter.
- * No API key required. The filter gives a dark-mode appearance that blends
- * well with the app's dark UI, while keeping full tile coverage and reliability.
- *
- * Uses a custom Leaflet pane so the dark filter doesn't affect weather overlay
- * or radar tiles, which need to retain their original color palettes.
- */
+/** Base map with failure reporting; the rest of the map stays usable if it errors. */
 export default function BaseMapLayer({ onHealth }) {
   const map = useMap();
   const healthRef = useRef(onHealth);
@@ -22,18 +17,8 @@ export default function BaseMapLayer({ onHealth }) {
   }, [onHealth]);
 
   useEffect(() => {
-    // Create a dedicated pane for the base map so the dark filter is isolated.
-    if (!map.getPane(BASE_PANE)) {
-      const pane = map.createPane(BASE_PANE);
-      pane.style.zIndex = '200'; // below the default tilePane (200) — same level is fine
-      pane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.7) contrast(1.1) saturate(0.3)';
-    }
-
-    const layer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      pane: BASE_PANE,
-      maxZoom: map.getMaxZoom(),
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
-    });
+    const config = getBaseMapConfig(CARTO_KEY);
+    const layer = L.tileLayer(config.url, { maxZoom: map.getMaxZoom(), ...config.options });
     const stop = trackTileHealth(layer, (failing) => healthRef.current?.(failing));
     layer.addTo(map);
     return () => {
@@ -44,4 +29,3 @@ export default function BaseMapLayer({ onHealth }) {
 
   return null;
 }
-
