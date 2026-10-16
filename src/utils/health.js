@@ -1,8 +1,7 @@
-// The free-tier /uvi endpoint is deprecated and unavailable to many keys.
-// This estimates UV from solar geometry (latitude + time of day) and cloud
-// cover — the same class of heuristic meteorologists use for a rough clear/
-// cloudy-sky index — and is only used when the real reading isn't available.
-// The UI labels it as an estimate rather than presenting it as measured data.
+// Real UV readings come from Open-Meteo via /api/weather. OpenWeather retired
+// its standalone UV endpoint in 2021. When no real reading is available (or in
+// sample mode) this estimates UV from solar geometry (latitude + time of day)
+// and cloud cover. The UI always labels it as an estimate.
 export function estimateUVIndex(lat, cloudsPct, localHour) {
   const maxUV = Math.max(0, 11 - Math.abs(lat) / 10);
   const solarFactor = Math.max(0, Math.sin((Math.PI * (localHour - 6)) / 12));
@@ -14,8 +13,11 @@ export function estimateUVIndex(lat, cloudsPct, localHour) {
 // allergy API like Ambee/Breezometer). This gives a clearly-labeled estimate
 // based on season and temperature so the section is still useful, without
 // pretending to be a real pollen sensor reading.
-export function estimatePollen(tempC, month) {
-  const springSummer = month >= 2 && month <= 7; // Mar–Aug (Northern-hemisphere biased, but presented as an estimate)
+export function estimatePollen(tempC, month, lat = 0) {
+  // `month` is the location's local month (0-11). Seasons are flipped for the
+  // southern hemisphere so Sydney in October is treated as spring, not autumn.
+  const northSeason = month >= 2 && month <= 7; // Mar–Aug
+  const springSummer = lat < 0 ? !northSeason : northSeason;
   const mild = tempC > 10 && tempC < 32;
   let level = 1;
   if (springSummer && mild) level = tempC > 18 ? 4 : 3;

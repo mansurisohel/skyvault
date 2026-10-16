@@ -1,6 +1,6 @@
-// Generates realistic, internally-consistent demo weather data so the app
-// is fully explorable without API keys. Swapped out automatically the
-// moment VITE_OPENWEATHER_API_KEY is set (see services/weatherService.js).
+// Generates internally-consistent SAMPLE weather so the app is explorable
+// without API keys. It is always flagged (snapshot.isDemo) and labeled as
+// sample data in the UI. Values are metric; utils/units.js converts for display.
 
 function seededRandom(seed) {
   let s = seed % 2147483647;
@@ -25,41 +25,7 @@ const CONDITIONS = [
   { id: 741, main: 'Fog', description: 'fog', icon: '50' },
 ];
 
-function celsiusToFahrenheit(c) {
-  return (c * 9) / 5 + 32;
-}
-
-function kmhToMph(kmh) {
-  return kmh * 0.621371;
-}
-
-// Recursively converts every temp-shaped and wind_speed-shaped value in the
-// demo snapshot from the internal metric baseline to imperial, so the C/F
-// toggle actually does something when no API key is configured.
-function convertToImperial(snapshot) {
-  const convertTemp = (t) => Math.round(celsiusToFahrenheit(t) * 10) / 10;
-  const convertWind = (w) => Math.round(kmhToMph(w) * 10) / 10;
-
-  const convertEntry = (entry) => ({
-    ...entry,
-    ...(entry.temp !== undefined && typeof entry.temp === 'number' ? { temp: convertTemp(entry.temp) } : {}),
-    ...(entry.temp && typeof entry.temp === 'object'
-      ? { temp: { ...entry.temp, min: convertTemp(entry.temp.min), max: convertTemp(entry.temp.max), ...(entry.temp.day !== undefined ? { day: convertTemp(entry.temp.day) } : {}) } }
-      : {}),
-    ...(entry.feels_like !== undefined ? { feels_like: convertTemp(entry.feels_like) } : {}),
-    ...(entry.wind_speed !== undefined ? { wind_speed: convertWind(entry.wind_speed) } : {}),
-    ...(entry.wind_gust !== undefined && entry.wind_gust !== null ? { wind_gust: convertWind(entry.wind_gust) } : {}),
-  });
-
-  return {
-    ...snapshot,
-    current: convertEntry(snapshot.current),
-    hourly: snapshot.hourly.map(convertEntry),
-    daily: snapshot.daily.map(convertEntry),
-  };
-}
-
-export function buildDemoWeather(lat, lon, name = 'Demo City', units = 'metric') {
+export function buildDemoWeather(lat, lon, name = 'Sample City') {
   const rand = seededRandom(seedFromCoords(lat, lon));
   const now = Math.floor(Date.now() / 1000);
   const timezoneOffset = Math.round((lon / 15) * 3600);
@@ -166,9 +132,11 @@ export function buildDemoWeather(lat, lon, name = 'Demo City', units = 'metric')
     airQuality,
     alerts,
     isDemo: true,
+    units: 'metric',
+    fetchedAt: Date.now(),
   };
 
-  return units === 'imperial' ? convertToImperial(snapshot) : snapshot;
+  return snapshot;
 }
 
 export function buildDemoGeocode(query) {

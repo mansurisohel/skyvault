@@ -26,6 +26,16 @@ export default function SunriseSunsetCard() {
   const sunrise = current.sunrise;
   const sunset = current.sunset;
   const nowUtc = useClock(30000);
+
+  // Polar day/night: the API can omit sun times entirely. Say so instead of drawing NaN.
+  if (sunrise === null || sunset === null) {
+    return (
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-base font-semibold text-mist-50">Sunrise &amp; sunset</h2>
+        <p className="text-sm text-slate-400">Sun times are not available for this location right now (this can happen near the poles).</p>
+      </Card>
+    );
+  }
   const dayLength = sunset - sunrise;
   const solarNoon = sunrise + dayLength / 2;
   const daylightPct = Math.round((dayLength / 86400) * 100);

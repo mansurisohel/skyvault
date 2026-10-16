@@ -1,9 +1,22 @@
+# dependencies & build output
 node_modules
 dist
 dist-ssr
-*.local
+coverage
+
+# secrets: never commit real keys. Only .env.example is tracked.
 .env
 .env.*
 !.env.example
+*.local
+
+# Vercel CLI
+.vercel
+
+# editor / OS / logs
 .DS_Store
+Thumbs.db
 *.log
+npm-debug.log*
+.vscode/*
+!.vscode/extensions.json

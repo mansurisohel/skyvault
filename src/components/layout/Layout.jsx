@@ -15,14 +15,21 @@ export default function Layout({ children }) {
     ? resolveCondition(snapshot.current.weather[0].id, snapshot.current.weather[0].icon, tempC)
     : 'clear-day';
   const period = snapshot ? getDayPeriod(snapshot.current, now) : 'afternoon';
-  const windSpeed = snapshot?.current.wind_speed ?? 0;
-  const windDeg = snapshot?.current.wind_deg ?? null;
+  // The background animation thresholds are in km/h regardless of the display unit.
+  const windSpeed = snapshot ? (unit === 'imperial' ? snapshot.current.wind_speed / 0.621371 : snapshot.current.wind_speed) : 0;
+  const windDeg = snapshot?.current.wind_deg ?? null; // null = direction unknown
   const rainVolume = snapshot?.current.rainVolume ?? 0;
   const snowVolume = snapshot?.current.snowVolume ?? 0;
   const cloudCover = snapshot?.current.clouds ?? 0;
 
   return (
     <div className="relative min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-sky-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to content
+      </a>
       <AnimatedBackground
         condition={condition}
         period={period}
@@ -33,7 +40,7 @@ export default function Layout({ children }) {
         cloudCover={cloudCover}
       />
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">
+      <main id="main-content" className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">
         {children}
       </main>
       <Footer />

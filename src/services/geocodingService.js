@@ -1,7 +1,8 @@
-import { cachedGet, ApiError } from './apiClient';
-import { OPENWEATHER_API_KEY, OPENWEATHER_BASE, DEMO_MODE } from '@/constants';
+import { apiGet, ApiError } from './apiClient';
+import { getServiceStatus, setServiceStatus, isDemoStatus } from './serviceStatus';
 import { buildDemoGeocode } from './demoData';
 import { normalizeGeocodeQuery } from '@/utils/countryCodes';
+import { sanitizeQuery, validCoords } from '@/utils/location';
 
 function dedupeLocations(list) {
   const seen = new Set();
@@ -13,68 +14,69 @@ function dedupeLocations(list) {
   });
 }
 
-async function queryGeocode(q, limit) {
-  const data = await cachedGet(`${OPENWEATHER_BASE}/geo/1.0/direct`, {
-    params: { q, limit, appid: OPENWEATHER_API_KEY },
-    ttlMs: 60 * 60 * 1000,
-  });
-  return (data || []).map((d) => ({
-    name: d.name,
-    state: d.state || '',
-    country: d.country,
-    lat: d.lat,
-    lon: d.lon,
-  }));
+function toLocations(data) {
+  const list = Array.isArray(data?.results) ? data.results : [];
+  return list
+    .filter((d) => typeof d?.name === 'string' && validCoords(d.lat, d.lon))
+    .map((d) => ({ name: d.name, state: d.state || '', country: d.country || '', lat: d.lat, lon: d.lon }));
+}
+
+function noteServiceUnavailable(err) {
+  if (err instanceof ApiError && (err.code === 'NO_API_KEY' || err.code === 'PROXY_UNAVAILABLE')) {
+    setServiceStatus('openweather', err.code === 'NO_API_KEY' ? 'missing' : 'unavailable');
+    return true;
+  }
+  return false;
+}
+
+async function queryGeocode(q, signal) {
+  const data = await apiGet('/api/geocode', { params: { q }, ttlMs: 60 * 60 * 1000, signal });
+  return toLocations(data);
 }
 
 /**
- * Resolves a free-text location query into candidate coordinates via the
- * OpenWeather Geocoding API. Used to power search-with-autocomplete so
- * the app always fetches weather by lat/lon rather than by raw city name.
+ * Resolves a free-text query to candidate places (max 5, an OpenWeather limit).
+ * Returns { results, demo }. `demo: true` means the server has no API key and
+ * the results come from a small built-in list of sample cities.
  *
- * Handles the two things that most commonly broke "search a city and
- * country" in practice: a full country name instead of an ISO code (OWM
- * only accepts codes — "Paris, France" is normalized to "Paris,FR"), and a
- * qualified query that turns up nothing (falls back to searching the bare
- * city name so the user still gets real results to pick the right one from).
+ * Failures other than "not configured" are THROWN (never replaced with made-up
+ * cities) so the search UI can say what went wrong and offer a retry.
+ *
+ * A full country name ("Paris, France") is normalized to the ISO code the API
+ * needs, and a qualified query with no hits falls back to the bare city name.
  */
-export async function searchLocations(query) {
-  if (!query || query.trim().length < 2) return [];
+export async function searchLocations(query, { signal } = {}) {
+  const clean = sanitizeQuery(query);
+  if (clean.length < 2) return { results: [], demo: false };
 
-  if (DEMO_MODE) {
-    return buildDemoGeocode(query);
+  if (isDemoStatus(getServiceStatus().openweather)) {
+    return { results: buildDemoGeocode(clean), demo: true };
   }
 
-  const normalized = normalizeGeocodeQuery(query);
-
+  const normalized = normalizeGeocodeQuery(clean);
   try {
-    let results = await queryGeocode(normalized, 8);
-
+    let results = await queryGeocode(normalized, signal);
     if (!results.length && normalized.includes(',')) {
       const bareCity = normalized.split(',')[0].trim();
-      if (bareCity) results = await queryGeocode(bareCity, 8);
+      if (bareCity) results = await queryGeocode(bareCity, signal);
     }
-
-    return dedupeLocations(results);
+    return { results: dedupeLocations(results), demo: false };
   } catch (err) {
-    if (err instanceof ApiError) return buildDemoGeocode(query);
+    if (noteServiceUnavailable(err)) return { results: buildDemoGeocode(clean), demo: true };
     throw err;
   }
 }
 
-export async function reverseGeocode(lat, lon) {
-  if (DEMO_MODE) {
-    return { name: 'Current Location', state: '', country: '', lat, lon };
-  }
+/** Never throws: if the lookup fails the coordinates are still valid, only the label is generic. */
+export async function reverseGeocode(lat, lon, { signal } = {}) {
+  const fallback = { name: 'Current location', state: '', country: '', lat, lon };
+  if (isDemoStatus(getServiceStatus().openweather)) return fallback;
   try {
-    const data = await cachedGet(`${OPENWEATHER_BASE}/geo/1.0/reverse`, {
-      params: { lat, lon, limit: 1, appid: OPENWEATHER_API_KEY },
-      ttlMs: 60 * 60 * 1000,
-    });
-    const d = data?.[0];
-    if (!d) return { name: 'Current Location', state: '', country: '', lat, lon };
-    return { name: d.name, state: d.state || '', country: d.country, lat, lon };
-  } catch {
-    return { name: 'Current Location', state: '', country: '', lat, lon };
+    const data = await apiGet('/api/geocode', { params: { lat: lat.toFixed(4), lon: lon.toFixed(4) }, ttlMs: 60 * 60 * 1000, signal });
+    const d = toLocations(data)[0];
+    return d ? { ...d, lat, lon } : fallback;
+  } catch (err) {
+    noteServiceUnavailable(err);
+    return fallback;
   }
 }

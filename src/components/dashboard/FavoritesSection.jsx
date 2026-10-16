@@ -27,7 +27,7 @@ export default function FavoritesSection() {
             <button
               type="button"
               onClick={goToOverview}
-              className="mt-2 rounded-full bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-300 hover:bg-sky-500/30"
+              className="focus-ring mt-2 min-h-10 rounded-full bg-sky-500/20 px-4 py-2 text-sm font-medium text-sky-300 hover:bg-sky-500/30"
             >
               Go to overview
             </button>
@@ -35,7 +35,7 @@ export default function FavoritesSection() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {favorites.map((loc) => (
               <FavoriteCityCard key={`${loc.lat}-${loc.lon}`} loc={loc} />
             ))}

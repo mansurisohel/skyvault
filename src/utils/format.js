@@ -1,7 +1,4 @@
-/** Converts a temperature in the display unit to Celsius (a no-op if already metric). */
-export function toCelsius(value, unit) {
-  return unit === 'metric' ? value : (value - 32) * (5 / 9);
-}
+export { toCelsius } from './units';
 
 export function formatTemp(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return '--';
@@ -40,12 +37,15 @@ export function formatDate(unixSeconds, timezoneOffsetSeconds = 0) {
 }
 
 export function windDirection(deg) {
+  if (typeof deg !== 'number' || Number.isNaN(deg)) return '--';
   const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
 export function relativeTime(dateStr) {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const time = new Date(dateStr).getTime();
+  if (Number.isNaN(time)) return '';
+  const diffMs = Date.now() - time;
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
@@ -66,12 +66,4 @@ export function formatDuration(totalSeconds) {
   const m = Math.round((totalSeconds % 3600) / 60);
   if (h <= 0) return `${m}m`;
   return `${h}h ${m}m`;
-}
-
-export function debounce(fn, delay = 350) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
 }

@@ -1,114 +1,97 @@
-import { cachedGet, ApiError } from './apiClient';
-import { GNEWS_DEV_KEY, GNEWS_BASE } from '@/constants';
-import { buildLocalInsights } from './insightsService';
+import { apiGet, ApiError } from './apiClient';
+import { setServiceStatus } from './serviceStatus';
+import { safeHttpUrl, safeImageUrl } from '@/utils/safeUrl';
 
-// Real, live news requires a real news API — there's no reliable, keyless,
-// CORS-friendly provider to fall back to for genuine third-party
-// journalism. If GNEWS_API_KEY isn't configured anywhere, or every attempt
-// below fails, the app falls back to locally-generated insights (see
-// insightsService.js) rather than showing nothing.
-const NEWS_TTL_MS = 5 * 60 * 1000;
+// News comes from SkyVault's own /api/news route, which holds the GNews key
+// server-side. Articles are re-validated here (defense in depth) because the
+// content ultimately originates from third-party publishers.
 
-// Deliberately broad and NOT city-specific — see api/news.js for why: on a
-// live deployment with real traffic, a free-tier key (100 req/day on
-// GNews) gets exhausted almost immediately if every distinct searched city
-// burns its own request. One shared query, cached, is what keeps a public
-// deployment on a free key viable at all.
-const GENERAL_WEATHER_QUERY = '"severe weather" OR "weather forecast" OR "storm warning" OR "weather alert" OR "extreme heat" OR "winter storm" OR "flood warning"';
+const NEWS_TTL_MS = 10 * 60 * 1000;
 
-function dedupe(articles) {
-  const seen = new Set();
-  return articles.filter((a) => {
-    const key = a.title?.trim().toLowerCase();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+const text = (v, max) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+
+/** Validates, de-duplicates (by URL and by title) and caps raw articles. Exported for tests. */
+export function normalizeArticles(raw) {
+  if (!Array.isArray(raw)) throw new ApiError('The news service returned unexpected data.', { code: 'BAD_RESPONSE' });
+
+  const seenUrls = new Set();
+  const seenTitles = new Set();
+  const out = [];
+
+  for (const a of raw) {
+    if (!a || typeof a !== 'object') continue;
+    const title = text(a.title, 300);
+    const url = safeHttpUrl(a.url);
+    const published = new Date(a.publishedAt);
+    if (!title || !url || Number.isNaN(published.getTime())) continue;
+
+    const urlKey = url.replace(/[?#].*$/, '').toLowerCase();
+    const titleKey = title.toLowerCase();
+    if (seenUrls.has(urlKey) || seenTitles.has(titleKey)) continue;
+    seenUrls.add(urlKey);
+    seenTitles.add(titleKey);
+
+    out.push({
+      id: urlKey,
+      title,
+      description: text(a.description, 500),
+      source: text(a.source?.name, 80) || 'Unknown source',
+      url,
+      image: safeImageUrl(a.image),
+      publishedAt: published.toISOString(),
+    });
+  }
+  return out;
 }
 
 /**
- * Since the underlying query is general (not scoped to one city), this
- * re-ranks the general result set so any article that happens to mention
- * the searched location's name or country surfaces first — a lightweight,
- * free way to feel location-aware without paying for a per-city API call.
+ * The query is general (not city-specific) so one cached request serves every
+ * visitor and the free GNews quota (100/day) is never burned per city. This
+ * re-ranks results so articles mentioning the selected place come first.
  */
-function rankByRelevance(articles, location) {
-  const needles = [location.name, location.country].filter(Boolean).map((s) => s.toLowerCase());
+export function rankByRelevance(articles, location) {
+  const needles = [location?.name, location?.country].filter(Boolean).map((s) => s.toLowerCase()).filter((n) => n.length > 2);
+  if (!needles.length) return articles;
   const score = (a) => {
-    const text = `${a.title} ${a.description ?? ''}`.toLowerCase();
-    return needles.some((n) => n.length > 2 && text.includes(n)) ? 1 : 0;
+    const hay = `${a.title} ${a.description}`.toLowerCase();
+    return needles.some((n) => hay.includes(n)) ? 1 : 0;
   };
-  return [...articles].sort((a, b) => score(b) - score(a));
+  return articles.map((a, i) => ({ a, i, s: score(a) })).sort((x, y) => y.s - x.s || x.i - y.i).map((x) => x.a);
 }
 
-function normalizeGNewsArticles(data) {
-  return (data?.articles || []).map((a, i) => ({
-    id: `${a.url}-${i}`,
-    title: a.title,
-    description: a.description,
-    source: a.source?.name || 'Unknown source',
-    url: a.url,
-    image: a.image,
-    publishedAt: a.publishedAt,
-  }));
-}
-
-// Same-origin call to our own Vercel serverless function — works after
-// deploying to Vercel (or `vercel dev` locally), and has no CORS exposure
-// since it's not a cross-origin request from the browser's point of view.
-async function fetchFromProxy() {
-  const res = await fetch('/api/news');
-  const contentType = res.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    // A plain `vite dev`/`vite preview` server has no /api routes, so this
-    // request 404s and returns its HTML fallback page — treat that as "the
-    // proxy isn't available here" rather than a data error.
-    throw new ApiError('The news proxy is not available in this environment.', { code: 'PROXY_UNAVAILABLE' });
-  }
-  const data = await res.json();
-  if (!res.ok || !data.articles) {
-    throw new ApiError(data?.reason || 'News proxy returned no articles.', { status: res.status, code: 'NO_ARTICLES' });
-  }
-  return normalizeGNewsArticles(data);
-}
-
-// Local-development-only convenience: calling GNews directly from the
-// browser with a VITE_-prefixed key. Only used when the serverless proxy
-// above isn't reachable (i.e. running plain `vite dev`) — on a real
-// deployment the proxy path is what's actually used.
-async function fetchDirectFromGNews() {
-  if (!GNEWS_DEV_KEY) {
-    throw new ApiError('No GNews key available for a direct client-side call.', { code: 'NO_KEY' });
-  }
-  const from = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-  const data = await cachedGet(`${GNEWS_BASE}/search`, {
-    params: {
-      q: GENERAL_WEATHER_QUERY, lang: 'en', max: 10, sortby: 'publishedAt', from, apikey: GNEWS_DEV_KEY,
-    },
-    ttlMs: NEWS_TTL_MS,
-  });
-  return normalizeGNewsArticles(data);
-}
-
-/**
- * Fetches weather news. Tries the serverless proxy first (production),
- * falls back to a direct client-side GNews call for local dev, and finally
- * falls back to locally-generated insights if neither path produces
- * anything — genuinely accurate to the searched location, but clearly not
- * the same thing as live third-party news.
- */
-export async function fetchWeatherNews(snapshot, location, unit = 'metric') {
-  const insights = () => ({ kind: 'insights', items: buildLocalInsights(snapshot, location, unit) });
-
-  for (const fetcher of [fetchFromProxy, fetchDirectFromGNews]) {
-    try {
-      const articles = dedupe(await fetcher());
-      if (articles.length) return { kind: 'articles', items: rankByRelevance(articles, location) };
-    } catch (err) {
-      if (!(err instanceof ApiError)) throw err;
-      // try the next strategy, or fall through to insights
+/** Fetches validated articles. Throws ApiError (with a code) on any failure. */
+export async function fetchNewsArticles({ signal } = {}) {
+  try {
+    const data = await apiGet('/api/news', { ttlMs: NEWS_TTL_MS, signal, retries: 1 });
+    const articles = normalizeArticles(data?.articles);
+    setServiceStatus('news', 'ok');
+    return { articles, fetchedAt: typeof data?.fetchedAt === 'number' ? data.fetchedAt : Date.now() };
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.code === 'NO_API_KEY') setServiceStatus('news', 'missing');
+      if (err.code === 'PROXY_UNAVAILABLE') setServiceStatus('news', 'unavailable');
     }
+    throw err;
   }
+}
 
-  return insights();
+/** Short, user-facing explanation of why live news is not being shown. */
+export function describeNewsFailure(err) {
+  const code = err?.code;
+  switch (code) {
+    case 'NO_API_KEY':
+      return { code, message: 'Live news is not configured. Add GNEWS_API_KEY on the server to enable it.' };
+    case 'PROXY_UNAVAILABLE':
+      return { code, message: 'The news API is not reachable in this environment (use "npm run dev" or deploy to Vercel).' };
+    case 'KEY_REJECTED':
+      return { code, message: 'The news provider rejected the API key. Check GNEWS_API_KEY.' };
+    case 'QUOTA':
+      return { code, message: 'The daily news quota has been reached. It resets automatically.' };
+    case 'RATE_LIMIT':
+      return { code, message: 'The news provider is rate limiting requests. Try again in a moment.' };
+    case 'OFFLINE':
+      return { code, message: "You're offline, so live news can't be loaded." };
+    default:
+      return { code: code ?? 'UNKNOWN', message: err?.message || 'Live news could not be loaded.' };
+  }
 }

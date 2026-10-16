@@ -1,19 +1,9 @@
-export const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || '';
-// Local-dev-only convenience for the news direct-call fallback (see
-// services/newsService.js). The real production key, GNEWS_API_KEY, is
-// read server-side by api/news.js and is never exposed to the client —
-// this is a deliberately different, VITE_-prefixed name so the two can
-// never be confused or accidentally cross-wired.
-export const GNEWS_DEV_KEY = import.meta.env.VITE_GNEWS_DEV_KEY || '';
-
-export const OPENWEATHER_BASE = 'https://api.openweathermap.org';
-export const GNEWS_BASE = 'https://gnews.io/api/v4';
-
-export const DEMO_MODE = !OPENWEATHER_API_KEY;
+// No API keys live in client code. Keys are read server-side by the
+// functions in /api (see .env.example). Whether the app is running on live or
+// sample data is reported at runtime by services/serviceStatus.js.
 
 export const STORAGE_KEYS = {
   UNIT: 'skyvault:unit',
-  THEME: 'skyvault:theme',
   FAVORITES: 'skyvault:favorites',
   HISTORY: 'skyvault:history',
   LAST_LOCATION: 'skyvault:lastLocation',

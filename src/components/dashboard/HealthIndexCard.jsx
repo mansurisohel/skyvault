@@ -4,24 +4,26 @@ import GaugeDial from '@/components/common/GaugeDial';
 import { useWeatherContext } from '@/context/WeatherContext';
 import { UV_LEVELS, AQI_LABELS } from '@/constants';
 import { estimatePollen, hydrationAdvice, uvAdvice } from '@/utils/health';
+import { toCelsius } from '@/utils/units';
 
 export default function HealthIndexCard() {
   const { snapshot, unit } = useWeatherContext();
   const { current, airQuality } = snapshot;
 
-  const uvLevel = UV_LEVELS.find((l) => current.uvi <= l.max);
+  const uvLevel = UV_LEVELS.find((l) => current.uvi <= l.max) ?? UV_LEVELS[UV_LEVELS.length - 1];
   const aqiInfo = airQuality ? AQI_LABELS[airQuality.aqi] : null;
-  const month = new Date().getMonth();
-  const tempC = unit === 'metric' ? current.temp : (current.temp - 32) * (5 / 9);
-  const pollen = estimatePollen(tempC, month);
-  const hydration = hydrationAdvice(tempC, current.humidity);
+  // Season is judged from the LOCATION's local month and hemisphere, not the visitor's clock.
+  const localMonth = new Date((current.dt + snapshot.location.timezoneOffset) * 1000).getUTCMonth();
+  const tempC = toCelsius(current.temp, unit);
+  const pollen = estimatePollen(tempC, localMonth, snapshot.location.lat);
+  const hydration = hydrationAdvice(tempC, current.humidity ?? 50);
 
   return (
     <Card className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-mist-50">Health index</h2>
         <span className="flex items-center gap-1.5 text-xs text-slate-400">
-          <ShieldAlert size={13} /> Personal guidance
+          <ShieldAlert size={13} aria-hidden="true" /> Personal guidance
         </span>
       </div>
 
@@ -29,7 +31,7 @@ export default function HealthIndexCard() {
         <div className="flex flex-col items-center gap-2 text-center">
           <GaugeDial value={current.uvi} max={11} sublabel={current.uvi.toFixed(1)} color={uvLevel.color} size={80} />
           <p className="text-xs font-medium text-mist-100">UV Index</p>
-          <p className="text-[11px] text-slate-400">{uvLevel.label}{current.uviEstimated ? ' (est.)' : ''}</p>
+          <p className="text-[11px] text-slate-400">{uvLevel.label}{current.uviEstimated ? ' (estimated)' : ''}</p>
         </div>
 
         {aqiInfo && (

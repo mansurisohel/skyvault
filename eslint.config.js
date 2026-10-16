@@ -6,7 +6,7 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['dist', 'node_modules', 'coverage'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
@@ -40,7 +40,7 @@ export default [
     // Build/tooling config files and serverless API functions run under
     // Node, not the browser — they need Node globals (process, etc.)
     // rather than the browser globals used for application source.
-    files: ['*.config.js', 'api/**/*.js'],
+    files: ['*.config.js', 'api/**/*.js', 'scripts/**/*.js', 'tests/api/**/*.js'],
     languageOptions: {
       globals: { ...globals.node },
     },

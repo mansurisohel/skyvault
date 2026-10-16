@@ -4,6 +4,7 @@ import { windDirection, formatTime, formatDuration, locationLabel, toCelsius } f
 import { resolveCondition, CONDITION_LABELS } from '@/utils/weatherCondition';
 
 const WINDY_THRESHOLD_KMH = 24;
+const KMH_PER_MPH = 1.609344;
 
 /**
  * Builds a set of short, accurate briefing cards directly from the live
@@ -12,6 +13,7 @@ const WINDY_THRESHOLD_KMH = 24;
  * dashboard, so it's always genuinely relevant to the searched location —
  * it's just not a substitute for real third-party journalism, and is
  * labeled as a generated insight rather than attributed to a fake outlet.
+ * When the snapshot is sample data the UI says so (snapshot.isDemo).
  */
 export function buildLocalInsights(snapshot, location, unit = 'metric') {
   const { current, daily, airQuality, alerts } = snapshot;
@@ -42,7 +44,11 @@ export function buildLocalInsights(snapshot, location, unit = 'metric') {
     icon: 'Cloud',
     tag: 'Right now',
     title: `${conditionLabel} in ${place}, ${Math.round(current.temp)}${tempUnit}`,
-    body: `Feels like ${Math.round(current.feels_like)}${tempUnit} with ${current.humidity}% humidity and wind from the ${windDirection(current.wind_deg)} at ${Math.round(current.wind_speed)} ${windUnit}.`,
+    body: [
+      `Feels like ${Math.round(current.feels_like)}${tempUnit}`,
+      current.humidity !== null ? `${current.humidity}% humidity` : null,
+      `wind ${current.wind_deg !== null ? `from the ${windDirection(current.wind_deg)} ` : ''}at ${Math.round(current.wind_speed)} ${windUnit}`,
+    ].filter(Boolean).join(', ') + '.',
     publishedAt: now,
   });
 
@@ -59,24 +65,25 @@ export function buildLocalInsights(snapshot, location, unit = 'metric') {
     });
   }
 
-  if (current.wind_speed >= WINDY_THRESHOLD_KMH) {
+  const windKmh = unit === 'metric' ? current.wind_speed : current.wind_speed * KMH_PER_MPH;
+  if (windKmh >= WINDY_THRESHOLD_KMH) {
     cards.push({
       id: 'wind',
       icon: 'Wind',
       tag: 'Wind advisory',
-      title: `Breezy conditions — ${Math.round(current.wind_speed)} ${windUnit} from the ${windDirection(current.wind_deg)}`,
+      title: `Breezy conditions — ${Math.round(current.wind_speed)} ${windUnit}${current.wind_deg !== null ? ` from the ${windDirection(current.wind_deg)}` : ''}`,
       body: 'Secure loose outdoor items and use caution with high-profile vehicles or bikes today.',
       publishedAt: now,
     });
   }
 
   const uvLevel = UV_LEVELS.find((l) => current.uvi <= l.max);
-  if (current.uvi >= 3) {
+  if (uvLevel && current.uvi >= 3) {
     cards.push({
       id: 'uv',
       icon: 'Sun',
       tag: `UV ${uvLevel.label}${current.uviEstimated ? ' (estimated)' : ''}`,
-      title: `UV index is ${current.uvi.toFixed(1)} today`,
+      title: `UV index is ${current.uvi.toFixed(1)}${current.uviEstimated ? ' (estimated)' : ''} right now`,
       body: uvAdvice(current.uvi),
       publishedAt: now,
     });
@@ -98,7 +105,7 @@ export function buildLocalInsights(snapshot, location, unit = 'metric') {
     });
   }
 
-  if (current.visibility < 5000) {
+  if (current.visibility !== null && current.visibility < 5000) {
     cards.push({
       id: 'visibility',
       icon: 'Eye',
@@ -124,9 +131,9 @@ export function buildLocalInsights(snapshot, location, unit = 'metric') {
     });
   }
 
-  const tempC = unit === 'metric' ? current.temp : (current.temp - 32) * (5 / 9);
-  const hydration = hydrationAdvice(tempC, current.humidity);
-  cards.push({
+  const tempC = toCelsius(current.temp, unit);
+  const hydration = current.humidity !== null ? hydrationAdvice(tempC, current.humidity) : null;
+  if (hydration) cards.push({
     id: 'hydration',
     icon: 'Droplets',
     tag: 'Health tip',
@@ -135,14 +142,16 @@ export function buildLocalInsights(snapshot, location, unit = 'metric') {
     publishedAt: now,
   });
 
-  cards.push({
-    id: 'sun',
-    icon: 'Sunrise',
-    tag: 'Sun times',
-    title: `Sunrise ${formatTime(current.sunrise, tz)}, sunset ${formatTime(current.sunset, tz)}`,
-    body: `Daylight lasts about ${formatDuration(current.sunset - current.sunrise)} today.`,
-    publishedAt: now,
-  });
+  if (current.sunrise !== null && current.sunset !== null) {
+    cards.push({
+      id: 'sun',
+      icon: 'Sunrise',
+      tag: 'Sun times',
+      title: `Sunrise ${formatTime(current.sunrise, tz)}, sunset ${formatTime(current.sunset, tz)}`,
+      body: `Daylight lasts about ${formatDuration(current.sunset - current.sunrise)} today.`,
+      publishedAt: now,
+    });
+  }
 
   return cards;
 }

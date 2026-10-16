@@ -2,7 +2,6 @@ import {
   AlertTriangle, Cloud, CalendarClock, Wind, Sun, Droplets, Sunrise, Sparkles,
   Eye, TrendingUp, TrendingDown, CalendarDays,
 } from 'lucide-react';
-import { relativeTime } from '@/utils/format';
 
 const ICONS = {
   AlertTriangle, Cloud, CalendarClock, Wind, Sun, Droplets, Sunrise, Eye, TrendingUp, TrendingDown, CalendarDays,
@@ -22,7 +21,7 @@ const ACCENTS = {
   CalendarDays: { bar: 'bg-violet-400', badge: 'bg-violet-500/15 text-violet-300' },
 };
 
-export default function InsightCard({ insight }) {
+export default function InsightCard({ insight, sample = false }) {
   const Icon = ICONS[insight.icon] ?? Sparkles;
   const accent = ACCENTS[insight.icon] ?? { bar: 'bg-violet-400', badge: 'bg-violet-500/15 text-violet-300' };
 
@@ -33,10 +32,11 @@ export default function InsightCard({ insight }) {
         <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${accent.badge}`}>
           <Icon size={13} /> {insight.tag}
         </span>
-        <span className="shrink-0 text-xs text-slate-500">{relativeTime(insight.publishedAt)}</span>
+        <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-slate-500">Generated</span>
       </div>
       <h3 className="pl-1 text-sm font-semibold leading-snug text-mist-50">{insight.title}</h3>
       <p className="pl-1 text-sm text-slate-300">{insight.body}</p>
+      {sample && <p className="pl-1 text-[11px] text-amber-300">Based on sample data, not live conditions.</p>}
     </article>
   );
 }

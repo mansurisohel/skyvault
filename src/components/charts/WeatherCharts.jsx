@@ -6,8 +6,7 @@ import {
 import { Thermometer, CloudRain, Wind, Gauge, Droplets } from 'lucide-react';
 import { Card } from '@/components/common/Primitives';
 import { useWeatherContext } from '@/context/WeatherContext';
-import { useClock } from '@/hooks/useClock';
-import { buildInterpolatedTimeline } from '@/utils/timeline';
+import { useHourlyTimeline } from '@/hooks/useHourlyTimeline';
 import { formatHour, unitSuffix } from '@/utils/format';
 
 const gridColor = 'rgba(255,255,255,0.07)';
@@ -26,23 +25,19 @@ function ChartTooltip({ active, payload, label, unit }) {
 export default function WeatherCharts() {
   const { snapshot, unit } = useWeatherContext();
   const tz = snapshot.location.timezoneOffset;
-  const nowUnix = useClock(60000);
   const [metric, setMetric] = useState('temp');
 
-  const timeline = buildInterpolatedTimeline(snapshot.hourly, {
-    stepSeconds: 2 * 3600,
-    count: 12,
-    startAt: nowUnix,
-  });
+  // Same timeline as the hourly card, so "Now" always equals the current observation.
+  const timeline = useHourlyTimeline(snapshot);
 
-  const data = timeline.map((h, i) => ({
+  const data = useMemo(() => timeline.map((h, i) => ({
     hour: i === 0 ? 'Now' : formatHour(h.dt, tz),
     temp: Math.round(h.temp),
     pop: Math.round(h.pop * 100),
     wind: Math.round(h.wind_speed),
     humidity: h.humidity,
     pressure: h.pressure,
-  }));
+  })), [timeline, tz]);
 
   const tempUnit = unit === 'metric' ? '°C' : '°F';
   const windUnit = ` ${unitSuffix('wind', unit)}`;
@@ -88,7 +83,7 @@ export default function WeatherCharts() {
         const vals = rows.map((r) => r.wind);
         return [
           { label: 'Now', value: `${vals[0]}${windUnit}` },
-          { label: 'Gusting to', value: `${Math.max(...vals)}${windUnit}` },
+          { label: 'Peak', value: `${Math.max(...vals)}${windUnit}` },
           { label: 'Calmest', value: `${Math.min(...vals)}${windUnit}` },
         ];
       },
@@ -100,11 +95,11 @@ export default function WeatherCharts() {
       color: '#9a8cf5',
       unit: '%',
       summary: (rows) => {
-        const vals = rows.map((r) => r.humidity);
+        const vals = rows.map((r) => r.humidity).filter((v) => v !== null);
         return [
-          { label: 'Now', value: `${vals[0]}%` },
-          { label: 'Peak', value: `${Math.max(...vals)}%` },
-          { label: 'Driest', value: `${Math.min(...vals)}%` },
+          { label: 'Now', value: vals.length ? `${vals[0]}%` : '--' },
+          { label: 'Peak', value: vals.length ? `${Math.max(...vals)}%` : '--' },
+          { label: 'Driest', value: vals.length ? `${Math.min(...vals)}%` : '--' },
         ];
       },
     },
@@ -115,7 +110,8 @@ export default function WeatherCharts() {
       color: '#5fd18b',
       unit: ' hPa',
       summary: (rows) => {
-        const vals = rows.map((r) => r.pressure);
+        const vals = rows.map((r) => r.pressure).filter((v) => v !== null);
+        if (!vals.length) return [{ label: 'Now', value: '--' }, { label: 'Trend', value: '--' }, { label: 'Range', value: '--' }];
         const trend = vals[vals.length - 1] - vals[0];
         return [
           { label: 'Now', value: `${vals[0]} hPa` },
@@ -134,10 +130,10 @@ export default function WeatherCharts() {
       <div className="flex flex-col gap-3 px-5 pt-5 md:px-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-base font-semibold text-mist-50">Forecast trends</h2>
-          <span className="text-xs text-slate-500">Next 24h</span>
+          <span className="text-xs text-slate-400">Next 24h</span>
         </div>
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div role="group" aria-label="Chart metric" className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {METRICS.map((m) => {
             const Icon = m.icon;
             const isActive = m.id === metric;
@@ -146,11 +142,12 @@ export default function WeatherCharts() {
                 key={m.id}
                 type="button"
                 onClick={() => setMetric(m.id)}
-                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
+                aria-pressed={isActive}
+                className={`focus-ring flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-colors active:scale-[0.97] ${
                   isActive ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/50' : 'text-slate-400 hover:bg-white/5 hover:text-mist-100'
                 }`}
               >
-                <Icon size={14} />
+                <Icon size={14} aria-hidden="true" />
                 {m.label}
               </button>
             );
@@ -168,7 +165,7 @@ export default function WeatherCharts() {
       </div>
 
       <div className="flex-1 px-2 pb-5 pt-2 md:px-3">
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} minWidth={0}>
           {metric === 'temp' ? (
             <AreaChart data={data} margin={{ top: 5, right: 12, left: 0, bottom: 0 }}>
               <defs>

@@ -41,7 +41,7 @@ export default function WindCard() {
           value={0}
           sublabel={windDirection(current.wind_deg)}
           color="#7fabff"
-          needleDeg={current.wind_deg}
+          needleDeg={current.wind_deg ?? undefined}
           size={110}
         />
       </div>

@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 
-export function useActiveSection(ids) {
+/**
+ * Tracks which page section is in view. `ids` must be a stable array; pass
+ * `refreshKey` to re-observe when sections mount later (e.g. after data loads).
+ */
+export function useActiveSection(ids, refreshKey = null) {
   const [active, setActive] = useState(ids[0]);
 
   useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
     const elements = ids.map((id) => document.getElementById(id)).filter(Boolean);
     if (!elements.length) return undefined;
 
@@ -19,7 +24,7 @@ export function useActiveSection(ids) {
 
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [ids]);
+  }, [ids, refreshKey]);
 
   return active;
 }

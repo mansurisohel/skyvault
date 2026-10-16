@@ -1,89 +1,131 @@
-# SkyVault — Weather Data
+# SkyVault Weather
 
-A premium, single-page weather app built with React 19, Vite, and Tailwind CSS. Search any city and scroll through live conditions, a multi-day forecast timeline, air quality, UV, hydration guidance, moon-phase activity ideas, sunrise/sunset, an interactive weather map, and location-aware news — all in one continuous, anchor-navigable page with a single cohesive dark theme built around animated weather backgrounds.
+A React + Vite weather dashboard: live conditions, hourly and 5-day forecasts, air quality,
+UV, sunrise/sunset, an interactive Leaflet map with animated rain radar, weather news, favorites
+and search.
 
-Runs fully in **demo mode** out of the box with realistic sample data, so you can explore every section before adding API keys.
+All third-party API keys stay on the server. The browser only talks to this app's own `/api/*`
+routes (Vercel serverless functions in production, the same files served by Vite locally).
 
-## Quick start
+```
+Browser ──► /api/weather   ──► OpenWeather (current + forecast + air quality) + Open-Meteo (UV)
+        ├─► /api/geocode   ──► OpenWeather geocoding
+        ├─► /api/tiles     ──► OpenWeather map tiles   (so the key is never in a tile URL)
+        ├─► /api/news      ──► GNews
+        └─► api.rainviewer.com / tilecache.rainviewer.com   (public radar, no key)
+```
 
-```bash
+---
+
+## 1. Quick start (Windows + VS Code)
+
+Requires **Node.js 20.19 or newer** (22 LTS recommended). Check with `node -v`.
+
+In **PowerShell** (or the VS Code terminal, ``Ctrl+` ``):
+
+```powershell
+cd C:\path\to\skyvault-app
 npm install
-npm run dev
+copy .env.example .env      # then open .env and paste your keys
+code .                      # opens VS Code (optional)
+npm run dev                 # http://localhost:5173
 ```
 
-Open the printed local URL (usually `http://localhost:5173`).
-
-## Going live with real data
-
-1. Copy `.env.example` to `.env`.
-2. Add your keys — either naming works for each one (e.g. `GNEWS_API_KEY` or `VITE_GNEWS_API_KEY`, see `vite.config.js`):
-   - `OPENWEATHER_API_KEY` — [openweathermap.org/api](https://openweathermap.org/api). The app deliberately uses only the endpoints included in every free-tier key — **Current Weather**, **5 Day / 3 Hour Forecast**, **Geocoding**, and **Air Pollution** — not One Call 3.0, which requires opting into a separate subscription even with a valid key (a common, silent cause of an app quietly falling back to demo data). One trade-off: the "daily" outlook is derived by grouping 3-hour forecast steps by day rather than a true daily endpoint, and weather alerts aren't available on this tier, so the Active Alerts section simply stays empty unless one is present some other way.
-   - **Weather news** — see [News architecture](#news-architecture) below for the full picture; in short, set `GNEWS_API_KEY` as a server-side env var in your hosting platform for production, and/or `VITE_GNEWS_DEV_KEY` in `.env` for local dev. Without either, or if both fail, the News section shows **Insights** — short briefs generated directly from the live weather snapshot (current conditions, today's outlook, UV, air quality, hydration, sun times, visibility, multi-day trend) rather than generic filler, and clearly labeled as generated rather than sourced journalism.
-3. Restart the dev server.
-
-The Preferences section (bottom of the page) shows live connection status for both keys at any time.
-
-## Scripts
-
-| Command | Description |
+| Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format the codebase with Prettier |
+| `npm run dev` | Dev server with hot reload **and** the `/api/*` routes |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serves the production build locally, including `/api/*` |
+| `npm run lint` | ESLint |
+| `npm test` | Unit + API + component tests (Vitest) |
 
-## News architecture
+If `.env` has no keys, the app starts in **demo mode**: sample data, labeled "Sample data" in the UI.
 
-Weather news is deliberately **not** called directly from the browser with an exposed API key — that pattern is fragile across hosting environments (CORS behavior varies by provider and origin) and bakes a secret into public client JS. Instead:
+## 2. Environment variables
 
-- **`api/news.js`** is a Vercel serverless function that calls GNews server-side and returns the result to the frontend via a same-origin `/api/news` request — no CORS involved, and the key never leaves the server.
-- Set `GNEWS_API_KEY` as a plain (no `VITE_` prefix) environment variable in your **hosting platform's project settings** — e.g. the Vercel dashboard, not `.env`. `vercel.json` is already configured for this.
-- The function deliberately queries general weather news (not a specific city) and sends `Cache-Control` headers so Vercel's edge network caches one shared response for a while — GNews's free tier is 100 requests/day *for the whole key*, shared across every visitor; a per-city query would exhaust that almost immediately under real traffic.
-- Locally, plain `npm run dev` has no serverless runtime, so `/api/news` isn't reachable. Set `VITE_GNEWS_DEV_KEY` in `.env` to let the app call GNews directly from the browser during local development instead. This key **will** be visible in the client bundle — that's fine for your own local dev, but never set this specific variable in a real deployment's environment.
-- If either path fails (no key, quota exhausted, network error), the News section falls back to insights generated from the live weather snapshot rather than showing nothing.
+| Variable | Required | Visibility | Used by |
+| --- | --- | --- | --- |
+| `OPENWEATHER_API_KEY` | For live weather | **Private (server only)** | `api/weather`, `api/geocode`, `api/tiles` |
+| `GNEWS_API_KEY` | For live news | **Private (server only)** | `api/news` |
 
-**Deploying somewhere other than Vercel?** `api/news.js` uses Vercel's serverless function convention (a default-exported handler receiving `req`/`res`). Netlify Functions, Cloudflare Pages Functions, and others use a slightly different shape — the logic inside (the GNews call, query, and caching approach) carries over directly, but the function signature and file location will need adapting to that platform's convention.
+There are **no public (browser-visible) variables**. `vite.config.js` sets `envPrefix: 'VITE_PUBLIC_'`,
+so even a mistakenly named `VITE_...` secret can never be bundled into client code.
 
-## Layout
+Legacy names (`VITE_OPENWEATHER_API_KEY`, `VITE_GNEWS_DEV_KEY`) are still read by the **server** so
+existing setups keep working, but they log a rename hint. Rename them.
 
-SkyVault is a single page (`src/pages/Home.jsx`) made of anchor-linked sections, navigable from the sticky header or by scrolling:
+## 3. Deploy to Vercel
 
-- **Overview** — hero search, active alerts, current conditions, hourly strip
-- **Forecast** — a multi-day outlook plus temperature/rain/wind/pressure charts
-- **Health, moon & activities** — UV, air quality, an estimated pollen level, hydration guidance, moon-phase activity recommendations, a sunrise/sunset arc, a wind compass, and 18 outdoor activities (running, swimming, cycling, hiking, fishing, photography, and more) ranked live against the current condition, temperature, wind, and time of day
-- **Live map** — precipitation/cloud/wind/temperature/pressure layers on a dark basemap, with a legend and fullscreen mode
-- **News** — location-aware weather stories
-- **Favorites** — saved cities with live mini-snapshots
-- **Preferences** — units, search history, API key status
+1. Make sure `.env` is **not** committed: `git status` should not list it (it is in `.gitignore`).
+2. Push the project to GitHub/GitLab/Bitbucket.
+3. In Vercel: **Add New → Project → Import** the repository. Vercel detects **Vite** automatically.
+   Leave Build Command (`vite build`) and Output Directory (`dist`) on their defaults.
+4. Open **Settings → Environment Variables** and add, for *Production*, *Preview* and *Development*:
+   - `OPENWEATHER_API_KEY`
+   - `GNEWS_API_KEY`
+5. Click **Deploy**. Environment variable changes only apply to **new** deployments, so redeploy
+   after changing them.
+6. Verify: open `https://<your-app>.vercel.app/api/weather?lat=51.5&lon=-0.12`. You should see JSON.
+   `{"error":{"code":"NO_API_KEY",...}}` means the variable is missing or the deployment predates it;
+   `KEY_REJECTED` means OpenWeather refused the key.
 
-## Architecture
+No `rewrites` are needed: the app is a single page, `api/*.js` files become functions automatically,
+and `vercel.json` only adds security headers (CSP, nosniff, frame-ancestors, referrer, permissions)
+and long-lived caching for hashed assets. If you add new third-party hosts, update the
+`Content-Security-Policy` in `vercel.json`.
+
+## 4. If a key was ever exposed: rotate it
+
+Keys that were in a `.env` that got shared (for example inside a ZIP), committed to Git, or built into
+a public JavaScript bundle must be treated as compromised, even if you removed them afterwards:
+
+1. **OpenWeather**: account → *API keys* → generate a new key, then delete the old one.
+2. **GNews**: dashboard → regenerate the API key.
+3. Put the new values in your local `.env` and in Vercel (*Environment Variables*), then **redeploy**.
+4. If a key was committed to Git, rotating is what protects you; rewriting history (`git filter-repo`
+   or BFG) is optional cleanup afterwards.
+
+Earlier versions of this project compiled both keys into the shipped JavaScript. This version does not.
+
+## 5. Data sources, limits and attribution
+
+| Data | Provider | Notes |
+| --- | --- | --- |
+| Current weather, 5-day/3-hour forecast, air quality, geocoding, map layers | OpenWeather | Free plan: 60 calls/min. Geocoding returns at most 5 matches. The free forecast has 3-hour steps (the hourly strip smooths between real points; the daily view groups them by local day). |
+| UV index | Open-Meteo | Keyless. Free for **non-commercial** use (CC BY 4.0), so check their terms for commercial deployments. OpenWeather retired its own UV endpoint in 2021. If Open-Meteo is unreachable the UI shows a value labeled "(est.)". |
+| Rain radar | RainViewer | Past ~2 hours, 10-minute steps, tiles up to **zoom 7** (the map upscales beyond that). |
+| News | GNews | Free plan: 100 requests/day, 1/second, 10 articles per request. The server query is general and CDN-cached so visitors share one request. |
+| Base map | CARTO / OpenStreetMap | Attribution shown on the map. Review CARTO's usage terms for high-traffic or commercial use. |
+
+Rules the app follows: it never invents live readings; sample data is always labeled; failed live
+requests show an error with a retry (they do not silently fall back to fake data); news is never
+fabricated, and generated "insights" are labeled as such.
+
+## 6. Troubleshooting
+
+- **"Sample data" banner**: no `OPENWEATHER_API_KEY` on the server. Add it and restart `npm run dev`
+  (or redeploy on Vercel).
+- **401 / "rejected the API key"** right after creating an OpenWeather key: new keys can take up to a
+  couple of hours to activate.
+- **News shows generated insights**: the message under "Weather news" says why (missing key, daily quota
+  of 100 requests, rate limit, offline).
+- **Weather layers say they need a key**: only the Precipitation tab's radar works without a key.
+- **API routes "not reachable"**: you opened a static copy of `dist/` (for example from a file server).
+  Use `npm run preview` or deploy to Vercel.
+- **Location button**: the browser only asks for permission after you click it. If it was blocked,
+  re-enable it in the site settings (lock icon in the address bar).
+
+## 7. Project layout
 
 ```
-src/
-  components/    UI building blocks, grouped by feature (dashboard, map, news, charts, animations, search, layout, common)
-  pages/         Home.jsx — the single page that assembles every section
-  context/        App-wide state: the central weather/location/favorites/history store
-  hooks/          Reusable hooks (debounce, localStorage, scroll-spy, news fetching)
-  services/       API clients (weather, geocoding, news) with caching + demo-data fallback
-  utils/          Formatting, moon-phase astronomy, health-index heuristics, weather-condition helpers
-  constants/      App-wide config and lookup tables
+api/                 Vercel serverless functions (server-only code; _lib/ holds shared helpers)
+scripts/             Vite plugin that serves api/ during dev and preview
+src/services/        API client (retry/timeout/abort/dedupe), weather, geocoding, news, radar
+src/context/         WeatherContext: selection, race-safe loading, unit conversion, favorites
+src/components/map/  Leaflet map, imperative radar layer, overlays, legends
+src/utils/units.js   The single place °C/°F, km/h/mph and mm/in conversions happen
+tests/               Vitest suites: API handlers, services/utilities, context
 ```
 
-### Design notes
-
-- **No dead ends.** Every data source (weather, geocoding, news) has a deterministic demo fallback, so a missing key, a rate limit, or a network error never leaves a section empty — it degrades gracefully with a visible notice.
-- **Free-tier-accurate by design.** Built entirely on endpoints every free OpenWeather key can call — no silent "looks fine, secretly wrong" fallback caused by an unsubscribed One Call plan.
-- **Location and time are real.** On a first-ever visit, the app quietly requests your actual position (falling back to a default city without any error if declined) rather than always opening to a fixed city. The animated background's morning/afternoon/evening/night state is computed from your location's actual sunrise/sunset, ticks live every minute, and the whole snapshot auto-refreshes every 10 minutes plus whenever the tab regains focus, so it doesn't quietly go stale.
-- **Search understands "city, country."** Free-text queries are normalized before hitting the geocoding API (a full country name like "France" is mapped to its ISO code, since OpenWeather's geocoder only accepts codes), with a broadened fallback search and de-duplication if a qualified query comes back empty.
-- **Live radar, not a snapshot.** The precipitation layer on the map is a real animated loop (recent past + short-term forecast frames) from RainViewer's free, keyless public API — play/pause and scrub the timeline. The other overlay layers (cloud/wind/temp/pressure) use OpenWeather's static map tiles, which don't have a free animated equivalent.
-- **One theme, weather-driven.** There's no light/dark toggle — the animated background itself (clear, cloudy, rain, storm, snow, mist, fog, day/night) is what shifts the app's mood, so the "theme" is always tied to the actual forecast and wind conditions (a wind-streak overlay appears whenever the real wind speed crosses a windy threshold, independent of the main condition).
-- **One instrument, many gauges.** The radial dial used for UV, air quality, and wind direction echoes the compass needle in the SkyVault mark, so the health and wind cards read as a single cohesive instrument panel.
-- **Moon-phase guidance is astronomy, not an API.** Phase and illumination are computed from a standard synodic-month formula; activity suggestions are grounded in real, commonly cited reasoning (dark-sky visibility, solunar theory for fishing, lunar planting calendars) rather than invented claims.
-- **Pollen and (sometimes) UV are labeled as estimates.** Free weather APIs don't expose real pollen data, and the dedicated UV endpoint is deprecated and inconsistently available — both fall back to clearly-labeled heuristics instead of being presented as measured data.
-- **News is honest about what it is, and stays current.** With GNews configured, articles refresh automatically every 5 minutes and on tab refocus. Without a key, or if the request fails, the News section shows short insights generated directly from the live snapshot — genuinely relevant to the searched location, but labeled as generated rather than disguised as third-party journalism.
-- **Animations are CSS-first.** Clouds, rain, snow, fog, and stars are driven by CSS transforms/keyframes rather than per-frame JavaScript, and everything respects `prefers-reduced-motion`.
-
-## Tech stack
-
-React 19 · Vite · Tailwind CSS 4 · Axios · Framer Motion · Lucide React · React Leaflet (OpenStreetMap + CARTO dark tiles) · Recharts · OpenWeather API · GNews API (via Vercel serverless proxy) · ESLint · Prettier
+Weather is stored in metric and converted for display, so switching °C/°F never refetches and values
+can never be left in mixed units.
